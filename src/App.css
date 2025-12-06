@@ -1,42 +1,295 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
+import React, { useState, useEffect } from "react";
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
+type Cell = {
+  x: number;
+  y: number;
+  hasMine: boolean;
+  isOpen: boolean;
+  isFlagged: boolean;
+  neighborMines: number;
+};
 
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
+type GameStatus = "playing" | "won" | "lost";
+
+const ROWS = 9;
+const COLS = 9;
+const MINES = 10;
+
+function createEmptyBoard(rows: number, cols: number): Cell[][] {
+  const board: Cell[][] = [];
+  for (let y = 0; y < rows; y++) {
+    const row: Cell[] = [];
+    for (let x = 0; x < cols; x++) {
+      row.push({
+        x,
+        y,
+        hasMine: false,
+        isOpen: false,
+        isFlagged: false,
+        neighborMines: 0,
+      });
+    }
+    board.push(row);
   }
-  to {
-    transform: rotate(360deg);
+  return board;
+}
+
+function placeMines(board: Cell[][], mines: number): Cell[][] {
+  const rows = board.length;
+  const cols = board[0].length;
+  let placed = 0;
+  const newBoard = board.map((row) => row.map((c) => ({ ...c })));
+
+  while (placed < mines) {
+    const x = Math.floor(Math.random() * cols);
+    const y = Math.floor(Math.random() * rows);
+    if (!newBoard[y][x].hasMine) {
+      newBoard[y][x].hasMine = true;
+      placed++;
+    }
   }
+
+  return newBoard;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
+function countNeighborMines(board: Cell[][], x: number, y: number): number {
+  const rows = board.length;
+  const cols = board[0].length;
+  let count = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dx === 0 && dy === 0) continue;
+      const nx = x + dx;
+      const ny = y + dy;
+      if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+      if (board[ny][nx].hasMine) count++;
+    }
   }
+  return count;
 }
 
-.card {
-  padding: 2em;
+function computeNeighborCounts(board: Cell[][]): Cell[][] {
+  const rows = board.length;
+  const cols = board[0].length;
+  const newBoard = board.map((row) => row.map((c) => ({ ...c })));
+
+  for (let y = 0; y < rows; y++) {
+    for (let x = 0; x < cols; x++) {
+      if (!newBoard[y][x].hasMine) {
+        newBoard[y][x].neighborMines = countNeighborMines(newBoard, x, y);
+      }
+    }
+  }
+
+  return newBoard;
 }
 
-.read-the-docs {
-  color: #888;
+function createBoard(rows: number, cols: number, mines: number): Cell[][] {
+  const empty = createEmptyBoard(rows, cols);
+  const withMines = placeMines(empty, mines);
+  const withCounts = computeNeighborCounts(withMines);
+  return withCounts;
 }
+
+function cloneBoard(board: Cell[][]): Cell[][] {
+  return board.map((row) => row.map((c) => ({ ...c })));
+}
+
+function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[][] {
+  const rows = board.length;
+  const cols = board[0].length;
+  const newBoard = cloneBoard(board);
+  const stack: { x: number; y: number }[] = [{ x, y }];
+
+  while (stack.length > 0) {
+    const { x: cx, y: cy } = stack.pop()!;
+    const cell = newBoard[cy][cx];
+
+    if (cell.isOpen || cell.isFlagged) continue;
+    cell.isOpen = true;
+
+    // 周囲に地雷がない場合は、周りも開いていく
+    if (cell.neighborMines === 0 && !cell.hasMine) {
+      for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
+          const neighbor = newBoard[ny][nx];
+          if (!neighbor.isOpen && !neighbor.hasMine) {
+            stack.push({ x: nx, y: ny });
+          }
+        }
+      }
+    }
+  }
+
+  return newBoard;
+}
+
+function checkWin(board: Cell[][]): boolean {
+  for (const row of board) {
+    for (const cell of row) {
+      if (!cell.hasMine && !cell.isOpen) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+const App: React.FC = () => {
+  const [board, setBoard] = useState<Cell[][]>(() =>
+    createBoard(ROWS, COLS, MINES)
+  );
+  const [status, setStatus] = useState<GameStatus>("playing");
+
+  const resetGame = () => {
+    setBoard(createBoard(ROWS, COLS, MINES));
+    setStatus("playing");
+  };
+
+  const handleLeftClick = (cell: Cell) => {
+    if (status !== "playing") return;
+    if (cell.isOpen || cell.isFlagged) return;
+
+    if (cell.hasMine) {
+      // 地雷踏んだ
+      const newBoard = cloneBoard(board);
+      // すべての地雷を表示
+      newBoard.forEach((row) =>
+        row.forEach((c) => {
+          if (c.hasMine) c.isOpen = true;
+        })
+      );
+      setBoard(newBoard);
+      setStatus("lost");
+      return;
+    }
+
+    const openedBoard = openCellsRecursive(board, cell.x, cell.y);
+    setBoard(openedBoard);
+
+    if (checkWin(openedBoard)) {
+      setStatus("won");
+    }
+  };
+
+  const handleRightClick = (e: React.MouseEvent, cell: Cell) => {
+    e.preventDefault();
+    if (status !== "playing") return;
+    if (cell.isOpen) return;
+
+    const newBoard = cloneBoard(board);
+    const target = newBoard[cell.y][cell.x];
+    target.isFlagged = !target.isFlagged;
+    setBoard(newBoard);
+  };
+
+  const renderCellContent = (cell: Cell) => {
+    if (!cell.isOpen) {
+      if (cell.isFlagged) return "🚩";
+      return "";
+    }
+    if (cell.hasMine) return "💣";
+    if (cell.neighborMines === 0) return "";
+    return cell.neighborMines;
+  };
+
+  const statusText =
+    status === "playing"
+      ? "探索中..."
+      : status === "won"
+      ? "制圧完了！🎉"
+      : "爆発……撤退します💥";
+
+  // 簡易スタイル（必要なら CSS に移してOK）
+  const cellSize = 32;
+
+  return (
+    <div
+      style={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "flex-start",
+        paddingTop: "24px",
+        fontFamily: "sans-serif",
+        background: "#0b1020",
+        color: "#f5f5f5",
+      }}
+    >
+      <h1 style={{ marginBottom: 8 }}>MISORIA : Frontier（仮）</h1>
+      <p style={{ marginBottom: 4, fontSize: 14 }}>簡易マインスイーパー版</p>
+
+      <div style={{ marginBottom: 8 }}>状態：{statusText}</div>
+      <button
+        onClick={resetGame}
+        style={{
+          marginBottom: 16,
+          padding: "6px 12px",
+          borderRadius: 4,
+          border: "none",
+          cursor: "pointer",
+        }}
+      >
+        リセット
+      </button>
+
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${COLS}, ${cellSize}px)`,
+          gridTemplateRows: `repeat(${ROWS}, ${cellSize}px)`,
+          gap: 2,
+          padding: 4,
+          background: "#111827",
+          borderRadius: 6,
+        }}
+      >
+        {board.map((row) =>
+          row.map((cell) => (
+            <button
+              key={`${cell.x}-${cell.y}`}
+              onClick={() => handleLeftClick(cell)}
+              onContextMenu={(e) => handleRightClick(e, cell)}
+              style={{
+                width: cellSize,
+                height: cellSize,
+                borderRadius: 4,
+                border: "1px solid #374151",
+                background: cell.isOpen ? "#1f2937" : "#111827",
+                color: cell.hasMine
+                  ? "#f97373"
+                  : cell.neighborMines === 1
+                  ? "#60a5fa"
+                  : cell.neighborMines === 2
+                  ? "#4ade80"
+                  : cell.neighborMines >= 3
+                  ? "#facc15"
+                  : "#e5e7eb",
+                fontSize: 18,
+                fontWeight: "bold",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                userSelect: "none",
+              }}
+            >
+              {renderCellContent(cell)}
+            </button>
+          ))
+        )}
+      </div>
+
+      <p style={{ marginTop: 16, fontSize: 12, opacity: 0.8 }}>
+        左クリック：開く / 右クリック：フラグ 🚩
+      </p>
+    </div>
+  );
+};
+
+export default App;
