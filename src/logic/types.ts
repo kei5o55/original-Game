@@ -10,3 +10,7 @@ export type Cell = {
 };
 
 export type GameStatus = "playing" | "won" | "lost";
+
+export type ChapterId = "chapter1" | "chapter2" | "chapter3" | "chapter4";
+
+
