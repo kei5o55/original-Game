@@ -1,73 +1,57 @@
-# React + TypeScript + Vite
+### マインスイーパーゲーム(MISORIA:Frontier（仮）)
+TypeScript + React を用いて制作した，
+ストーリー演出を組み込んだオリジナルのマインスイーパーゲームです
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+単なるパズルゲームとしてだけでなく
+探索・通信ログ・世界観設定を通して物語体験が進行する，  
+「RPG要素付きマインスイーパー」のプロトタイプとして開発しています
 
-Currently, two official plugins are available:
+### 制作目的
+- モダンな Web 技術（TypeScript / React）を用いた
+  アプリケーション制作経験の習得
+- 自身のオリジナル世界観「MISORIA」シリーズを
+  ゲームという形で表現・発信すること
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+### 主な機能
+- マインスイーパーゲームシステム
+  - 左クリック開放
+  - 右クリックフラグ設置
+  - 再帰的な周囲セル展開
+  - 勝敗判定ロジック
+- ストーリーログ表示システム
+  - ゲーム進行に応じてセリフや演出を表示
+- 画面遷移・シーン管理
+  - タイトル画面
+  - チャプター選択画面
+  - ゲーム画面
+  - クリア後遷移処理
 
-## React Compiler
+### 使用技術
+- **TypeScript**
+  - 静的型付けによる安全性の高い実装を行い、  
+    バグの抑制や将来的な機能拡張を見据えて採用
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **React**
+  - コンポーネント指向による画面構成を採用
+  - シーン管理・状態管理を明確に分離して実装
 
-## Expanding the ESLint configuration
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+### 工夫した点
+- 画面単位で `components` を分割
+  - Title / ChapterSelect / Game / StoryPanel など
+- ゲームロジックを `logic` ディレクトリとして分離
+  - マス生成，再帰開放、勝利判定などを UI から独立させて実装
+- これにより
+  - UI とロジックの責務分離
+  - 修正やデバッグの容易化
+  - 章追加やシステム追加への高い拡張性
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+を実現しました
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+また，単なるパズルゲームに留まらず  
+ストーリー演出を組み込むことで
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+- プレイヤーの没入感の向上
+- 自創作世界観の体験化
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
-
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+を目指しています
