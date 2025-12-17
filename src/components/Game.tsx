@@ -1,5 +1,5 @@
 // src/components/Game.tsx
-import React, { useState,useEffect} from "react";
+import React, { useState} from "react";
 import type { Cell, GameStatus, ChapterId } from "../logic/types";import {
   ROWS,
   COLS,
@@ -17,13 +17,23 @@ type GameProps = {
     chapter: ChapterId;
     onCleared: (chapter: ChapterId) => void;// 章クリア時のコールバック
     onBackToSelect: () => void;
-  };
+};
+
+const characterImageByStatus: Record<GameStatus, string> = {
+  playing: "/images/a.png",
+  won: "/images/a.png",
+  lost: "/images/a.png",
+};
+
+
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const [board, setBoard] = useState<Cell[][]>(() =>
     createBoard(ROWS, COLS, MINES)
   );
   const [status, setStatus] = useState<GameStatus>("playing");
+
+  const currentCharaImage = characterImageByStatus[status];
   
   // ★ 通信ログ
   const [storyLog, setStoryLog] = useState<string[]>([// 初期メッセージ
@@ -218,6 +228,37 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               </button>
             ))
           )}
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            padding: "8px 12px",
+            background: "rgba(15,23,42,0.85)",
+            borderRadius: 8,
+            boxShadow: "0 4px 10px rgba(0,0,0,0.4)",
+            maxWidth: 220,
+          }}
+        >
+          <img
+            src={currentCharaImage}
+            alt="フロンティアの主人公"
+            style={{
+              width: "100%",
+              height: "auto",
+              borderRadius: 8,
+              objectFit: "cover",
+              marginBottom: 8,
+            }}
+          />
+          <div style={{ fontSize: 12, opacity: 0.85, textAlign: "center" }}>
+            {/* ひとことセリフとかプロフィール */}
+            {status === "playing" && "『よし、このセクターも調査していこっか。』"}
+            {status === "won" && "『制圧完了！ データの解析、楽しみだな〜』"}
+            {status === "lost" && "『うわっ…！ ご、ごめん、ちょっと慎重さ足りなかったかも…』"}
+          </div>
         </div>
 
         <StoryPanel log={storyLog} />
