@@ -186,6 +186,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         <div
           style={{
             display: "grid",
+            flexShrink:0,
             gridTemplateColumns: `repeat(${COLS}, ${cellSize}px)`,
             gridTemplateRows: `repeat(${ROWS}, ${cellSize}px)`,
             gap: 2,
@@ -203,7 +204,11 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
                 style={{
                   width: cellSize,
                   height: cellSize,
-                  borderRadius: 4,
+                  appearance:"none",
+                  padding:0,
+                  lineHeight:1,
+                  boxSizing: "border-box",
+                  borderRadius: 0,
                   border: "1px solid #374151",
                   background: cell.isOpen ? "#1f2937" : "#111827",
                   color: cell.hasMine
@@ -244,7 +249,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         >
           <img
             src={currentCharaImage}
-            alt="フロンティアの主人公"
+            alt="主人公"
             style={{
               width: "100%",
               height: "auto",
