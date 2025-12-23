@@ -1,0 +1,48 @@
+.player-float {
+  animation: playerFloat 2.6s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+
+@keyframes playerFloat {
+  0%   { transform: translateY(0px) scale(1); }
+  50%  { transform: translateY(-6px) scale(1.02); }
+  100% { transform: translateY(0px) scale(1); }
+}
+
+.player-layer {
+  position: absolute;
+  top: 4px; /* 盤面paddingに合わせる */
+  left: 4px;
+  pointer-events: none;
+}
+
+.player-sprite {
+  width: 32px;
+  height: 32px;
+  background-image: url("/images/player.png");
+  background-size: cover;
+
+  animation: playerFloat 2.4s ease-in-out infinite;
+  transform-origin: 50% 80%;
+}
+
+.player-face {
+  width: 32px;
+  height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  font-size: 22px;
+  line-height: 1;
+
+  /* ふわふわ（待機） */
+  animation: playerFloat 2.4s ease-in-out infinite;
+}
+
+@keyframes playerFloat {
+  0%   { transform: translateY(0px) scale(1); }
+  50%  { transform: translateY(-4px) scale(1.02); }
+  100% { transform: translateY(0px) scale(1); }
+}

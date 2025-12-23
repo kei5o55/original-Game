@@ -10,6 +10,7 @@ type Scene = "title" | "select" | "game";
 const App: React.FC = () => {
   const [scene, setScene] = useState<Scene>("title");
 
+
   // どの章まで解放されているか
   const [unlockedChapters, setUnlockedChapters] = useState<ChapterId[]>([// 最初は 1 章だけ解放
     "chapter1",
