@@ -17,6 +17,7 @@ function createEmptyBoard(rows: number, cols: number): Cell[][] {
         isOpen: false,
         isFlagged: false,
         neighborMines: 0,
+        hasPlayer: false,
       });
     }
     board.push(row);
@@ -24,15 +25,29 @@ function createEmptyBoard(rows: number, cols: number): Cell[][] {
   return board;
 }
 
-function placeMines(board: Cell[][], mines: number): Cell[][] {
+function getPlayerStart(rows: number, cols: number) {
+  return { x: Math.floor(cols / 2), y: rows - 1 };
+}
+
+function placeMines(
+  board: Cell[][],
+  mines: number,
+  forbidden: { x: number; y: number }[] = []
+): Cell[][] {
   const rows = board.length;
   const cols = board[0].length;
   let placed = 0;
   const newBoard = board.map((row) => row.map((c) => ({ ...c })));
 
+  const forbiddenSet = new Set(forbidden.map((p) => `${p.x},${p.y}`));
+
   while (placed < mines) {
     const x = Math.floor(Math.random() * cols);
     const y = Math.floor(Math.random() * rows);
+
+    // ★自機などの禁止マスはスキップ
+    if (forbiddenSet.has(`${x},${y}`)) continue;
+
     if (!newBoard[y][x].hasMine) {
       newBoard[y][x].hasMine = true;
       placed++;
@@ -80,8 +95,15 @@ export function createBoard(
   cols: number = COLS,
   mines: number = MINES
 ): Cell[][] {
-  const empty = createEmptyBoard(rows, cols);
-  const withMines = placeMines(empty, mines);
+  let empty = createEmptyBoard(rows, cols);
+
+  // ★自機を最下段中央に置く
+  const { x: px, y: py } = getPlayerStart(rows, cols);
+  empty = empty.map((row) => row.map((c) => ({ ...c })));
+  empty[py][px].hasPlayer = true;
+
+  // ★自機マスは地雷禁止
+  const withMines = placeMines(empty, mines, [{ x: px, y: py }]);
   const withCounts = computeNeighborCounts(withMines);
   return withCounts;
 }

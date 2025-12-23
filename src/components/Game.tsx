@@ -1,6 +1,9 @@
 // src/components/Game.tsx
-import React, { useState} from "react";
-import type { Cell, GameStatus, ChapterId } from "../logic/types";import {
+import React, { useState,useEffect} from "react";
+import "./Game.css"
+
+import type { Cell, GameStatus, ChapterId } from "../logic/types";
+import {
   ROWS,
   COLS,
   MINES,
@@ -12,6 +15,7 @@ import type { Cell, GameStatus, ChapterId } from "../logic/types";import {
 import StoryPanel from "./StoryPanel";
 
 const cellSize = 32;
+const START_POS = { x: Math.floor(COLS / 2), y: ROWS - 1 };
 
 type GameProps = {
     chapter: ChapterId;
@@ -34,6 +38,24 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const [status, setStatus] = useState<GameStatus>("playing");
 
   const currentCharaImage = characterImageByStatus[status];
+
+const [playerPos, setPlayerPos] = useState(START_POS);
+
+  const gap = 2;
+  const offset = cellSize + gap;
+  const playerX = playerPos.x * offset;
+  const playerY = playerPos.y * offset;
+
+  useEffect(() => {
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (e.key === "ArrowUp")    setPlayerPos(p => ({ ...p, y: Math.max(0, p.y - 1) }));
+    if (e.key === "ArrowDown")  setPlayerPos(p => ({ ...p, y: Math.min(ROWS - 1, p.y + 1) }));
+    if (e.key === "ArrowLeft")  setPlayerPos(p => ({ ...p, x: Math.max(0, p.x - 1) }));
+    if (e.key === "ArrowRight") setPlayerPos(p => ({ ...p, x: Math.min(COLS - 1, p.x + 1) }));
+  };
+  window.addEventListener("keydown", onKeyDown);
+  return () => window.removeEventListener("keydown", onKeyDown);
+}, []);
   
   // ★ 通信ログ
   const [storyLog, setStoryLog] = useState<string[]>([// 初期メッセージ
@@ -52,6 +74,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     setStatus("playing");// ステータスをリセット
     setHasOpenedAnyCell(false);// 最初の1マスを開いたフラグをリセット
     setStoryLog([]);
+
+    setPlayerPos(START_POS);
+
     // リセットしたらまた挨拶
     pushStory("『通信再接続っと……よし、改めていこっか！』");
   };
@@ -115,19 +140,10 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     }
   };
 
-  // 章が変わるたびにゲーム初期化 今は非表示にしておく
-/*useEffect(() => {
-  setBoard(createBoard(ROWS, COLS, MINES));
-  setStatus("playing");
-  setHasOpenedAnyCell(false);
-  setStoryLog([
-    "『あー、あー……聞こえる？』",
-    "『うん！ それじゃあ今日も、よろしくね！』",
-  ]);
-}, [chapter]);*/
-
-
   const renderCellContent = (cell: Cell) => {
+    //const isPlayerHere = cell.x === playerPos.x && cell.y === playerPos.y;
+    //if (isPlayerHere) return "🙂"; // 仮
+
     if (!cell.isOpen) {
       if (cell.isFlagged) return "🚩";
       return "";
@@ -159,7 +175,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       }}
     >
       <h1 style={{ marginBottom: 8 }}>MISORIA : Frontier（仮）</h1>
-      <p style={{ marginBottom: 4, fontSize: 14 }}>簡易マインスイーパー版</p>
+      {/*<p style={{ marginBottom: 4, fontSize: 14 }}>簡易マインスイーパー版</p>*/}
 
       <div style={{ marginBottom: 8 }}>状態：{statusText}</div>
       <button
@@ -183,57 +199,79 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
           alignItems: "flex-start",
         }}
       >
-        <div
+
+        {/* ▼ 盤面 + 自機レイヤー */}
+<div
+  style={{
+    position: "relative",
+    flexShrink: 0,
+  }}
+>
+  {/* ▼ 盤面グリッド */}
+  <div
+    style={{
+      display: "grid",
+      gridTemplateColumns: `repeat(${COLS}, ${cellSize}px)`,
+      gridTemplateRows: `repeat(${ROWS}, ${cellSize}px)`,
+      gap: 2,
+      padding: 4,
+      background: "#111827",
+      borderRadius: 6,
+    }}
+  >
+    {board.map((row) =>
+      row.map((cell) => (
+        <button
+          key={`${cell.x}-${cell.y}`}
+          onClick={() => handleLeftClick(cell)}
+          onContextMenu={(e) => handleRightClick(e, cell)}
           style={{
-            display: "grid",
-            flexShrink:0,
-            gridTemplateColumns: `repeat(${COLS}, ${cellSize}px)`,
-            gridTemplateRows: `repeat(${ROWS}, ${cellSize}px)`,
-            gap: 2,
-            padding: 4,
-            background: "#111827",
-            borderRadius: 6,
+            width: cellSize,
+            height: cellSize,
+            appearance: "none",
+            padding: 0,
+            lineHeight: 1,
+            boxSizing: "border-box",
+            border: "1px solid #374151",
+            background: cell.isOpen ? "#1f2937" : "#111827",
+            color: cell.hasMine
+              ? "#f97373"
+              : cell.neighborMines === 1
+              ? "#60a5fa"
+              : cell.neighborMines === 2
+              ? "#4ade80"
+              : cell.neighborMines >= 3
+              ? "#facc15"
+              : "#e5e7eb",
+            fontSize: 18,
+            fontWeight: "bold",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            userSelect: "none",
           }}
         >
-          {board.map((row) =>
-            row.map((cell) => (
-              <button
-                key={`${cell.x}-${cell.y}`}
-                onClick={() => handleLeftClick(cell)}
-                onContextMenu={(e) => handleRightClick(e, cell)}
-                style={{
-                  width: cellSize,
-                  height: cellSize,
-                  appearance:"none",
-                  padding:0,
-                  lineHeight:1,
-                  boxSizing: "border-box",
-                  borderRadius: 0,
-                  border: "1px solid #374151",
-                  background: cell.isOpen ? "#1f2937" : "#111827",
-                  color: cell.hasMine
-                    ? "#f97373"
-                    : cell.neighborMines === 1
-                    ? "#60a5fa"
-                    : cell.neighborMines === 2
-                    ? "#4ade80"
-                    : cell.neighborMines >= 3
-                    ? "#facc15"
-                    : "#e5e7eb",
-                  fontSize: 18,
-                  fontWeight: "bold",
-                  cursor: "pointer",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  userSelect: "none",
-                }}
-              >
-                {renderCellContent(cell)}
-              </button>
-            ))
-          )}
-        </div>
+          {renderCellContent(cell)}
+        </button>
+      ))
+    )}
+  </div>
+
+  {/* ▼ ★自機レイヤー（ここ！） */}
+  <div
+  style={{
+    position: "absolute",
+    top: 4,
+    left: 4,
+    pointerEvents: "none",
+    transform: `translate(${playerX}px, ${playerY}px)`,
+    transition: "transform 0.18s ease-out",
+  }}
+>
+  <div className="player-face">🙂</div>
+</div>
+</div>
 
         <div
           style={{
@@ -250,6 +288,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
           <img
             src={currentCharaImage}
             alt="主人公"
+            className="player-float"
             style={{
               width: "100%",
               height: "auto",

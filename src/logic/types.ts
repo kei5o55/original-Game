@@ -7,6 +7,7 @@ export type Cell = {
   isOpen: boolean;
   isFlagged: boolean;
   neighborMines: number;
+  hasPlayer: boolean;
 };
 
 export type GameStatus = "playing" | "won" | "lost";
