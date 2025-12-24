@@ -10,7 +10,9 @@ export type ItemType = "heal" | "reveal" | "shield";
 export type StepOutcome =
   | { type: "safe"; neighborMines: number }
   | { type: "mine" }
-  | { type: "pickup"; item: ItemType };
+  | { type: "pickup"; item: "heal" | "reveal" | "shield" }
+  | { type: "event"; eventId: string }
+  | { type: "goal" };
 
 function createEmptyBoard(rows: number, cols: number): Cell[][] {
   const board: Cell[][] = [];
@@ -35,9 +37,9 @@ function createEmptyBoard(rows: number, cols: number): Cell[][] {
   return board;
 }
 
-function getPlayerStart(rows: number, cols: number) {
+/*function getPlayerStart(rows: number, cols: number) {
   return { x: Math.floor(cols / 2), y: rows - 1 };
-}
+}*/
 
 function placeMines(
   board: Cell[][],
@@ -99,18 +101,27 @@ function computeNeighborCounts(board: Cell[][]): Cell[][] {
 }
 
 // 盤面を新しく作る（自機スポーン位置は「地雷禁止」だけ適用）
-export function createBoard(
-  rows: number = ROWS,
-  cols: number = COLS,
-  mines: number = MINES
-): Cell[][] {
+export function createBoard(rows = ROWS, cols = COLS, mines = MINES): Cell[][] {
   const empty = createEmptyBoard(rows, cols);
 
-  const { x: px, y: py } = getPlayerStart(rows, cols);
+  const start = { x: Math.floor(cols / 2), y: rows - 1 };
+  empty[start.y][start.x].hasPlayer = true;
 
-  const withMines = placeMines(empty, mines, [{ x: px, y: py }]);
-  const withCounts = computeNeighborCounts(withMines);
+  // スタートは「地雷/アイテム/イベント禁止」
+  const forbidden = [start];
 
+  const withMines = placeMines(empty, mines, forbidden);
+
+  // 追加：アイテム置く（例）
+  const withItems = placeItems(withMines, [
+    { type: "heal", count: 2 },
+    { type: "shield", count: 1 },
+  ], forbidden);
+
+  // 追加：イベント置く（例）
+  const withEvents = placeEvents(withItems, ["signal_a", "signal_b", "signal_c"], forbidden);
+
+  const withCounts = computeNeighborCounts(withEvents);
   return withCounts;
 }
 
@@ -120,35 +131,34 @@ export function cloneBoard(board: Cell[][]): Cell[][] {
 }
 
 // 「踏んだ」結果だけ返す（UI文言は入れない）
-export function stepOnCell(
-  board: Cell[][],
-  x: number,
-  y: number
-): { board: Cell[][]; outcome: StepOutcome } {
+export function stepOnCell(board: Cell[][], x: number, y: number) {
   const newBoard = cloneBoard(board);
   const cell = newBoard[y][x];
 
-  // 踏んだマスだけ開く
   cell.isOpen = true;
 
-  // 地雷
   if (cell.hasMine) {
-    return { board: newBoard, outcome: { type: "mine" } };
+    return { board: newBoard, outcome: { type: "mine" } as const };
   }
 
-  // アイテム
+  if (cell.isGoal) {
+    return { board: newBoard, outcome: { type: "goal" } as const };
+  }
+
+  if (cell.eventId) {
+    const id = cell.eventId;
+    cell.eventId = undefined; // 1回きり回収なら消す
+    return { board: newBoard, outcome: { type: "event", eventId: id } as const };
+  }
+
   if (cell.item) {
     const item = cell.item;
-    cell.item = undefined; // 取得したら消す
-    return { board: newBoard, outcome: { type: "pickup", item } };
+    cell.item = undefined;
+    return { board: newBoard, outcome: { type: "pickup", item } as const };
   }
 
-  return {
-    board: newBoard,
-    outcome: { type: "safe", neighborMines: cell.neighborMines },
-  };
+  return { board: newBoard, outcome: { type: "safe", neighborMines: cell.neighborMines } as const };
 }
-
 // クリックされたマスから広がる開放処理（旧マインスイーパー用）
 export function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[][] {
   const rows = board.length;
@@ -190,4 +200,65 @@ export function checkWin(board: Cell[][]): boolean {
     }
   }
   return true;
+}
+
+function placeItems(
+  board: Cell[][],
+  items: { type: "heal" | "reveal" | "shield"; count: number }[],
+  forbidden: { x: number; y: number }[] = []
+): Cell[][] {
+  const rows = board.length;
+  const cols = board[0].length;
+  const newBoard = board.map(row => row.map(c => ({ ...c })));
+
+  const forbiddenSet = new Set(forbidden.map(p => `${p.x},${p.y}`));
+
+  for (const it of items) {
+    let placed = 0;
+    while (placed < it.count) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+
+      if (forbiddenSet.has(`${x},${y}`)) continue;
+
+      const cell = newBoard[y][x];
+      if (cell.hasMine) continue;
+      if (cell.item || cell.eventId || cell.isGoal) continue;
+
+      cell.item = it.type;
+      placed++;
+    }
+  }
+
+  return newBoard;
+}
+
+function placeEvents(
+  board: Cell[][],
+  eventIds: string[],
+  forbidden: { x: number; y: number }[] = []
+): Cell[][] {
+  const rows = board.length;
+  const cols = board[0].length;
+  const newBoard = board.map(row => row.map(c => ({ ...c })));
+
+  const forbiddenSet = new Set(forbidden.map(p => `${p.x},${p.y}`));
+
+  for (const id of eventIds) {
+    while (true) {
+      const x = Math.floor(Math.random() * cols);
+      const y = Math.floor(Math.random() * rows);
+
+      if (forbiddenSet.has(`${x},${y}`)) continue;
+
+      const cell = newBoard[y][x];
+      if (cell.hasMine) continue;
+      if (cell.item || cell.eventId || cell.isGoal) continue;
+
+      cell.eventId = id;
+      break;
+    }
+  }
+
+  return newBoard;
 }
