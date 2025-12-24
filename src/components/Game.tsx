@@ -1,8 +1,9 @@
 // src/components/Game.tsx
 import React, { useState,useEffect} from "react";
 import "./Game.css"
+import type { Cell, GameStatus, ChapterId, StoryLogItem } from "../logic/types";
+import {stepOnCell} from "../logic/board";
 
-import type { Cell, GameStatus, ChapterId } from "../logic/types";
 import {
   ROWS,
   COLS,
@@ -31,54 +32,146 @@ const characterImageByStatus: Record<GameStatus, string> = {
 
 
 
-const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
-  const [board, setBoard] = useState<Cell[][]>(() =>
-    createBoard(ROWS, COLS, MINES)
-  );
-  const [status, setStatus] = useState<GameStatus>("playing");
 
-  const currentCharaImage = characterImageByStatus[status];
+const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
+
+const [board, setBoard] = useState<Cell[][]>(() =>
+  createBoard(ROWS, COLS, MINES)
+);
+
+const [status, setStatus] = useState<GameStatus>("playing");
+
+const currentCharaImage = characterImageByStatus[status];
 
 const [playerPos, setPlayerPos] = useState(START_POS);
 
-  const gap = 2;
-  const offset = cellSize + gap;
-  const playerX = playerPos.x * offset;
-  const playerY = playerPos.y * offset;
+const gap = 2;
+const offset = cellSize + gap;
+const playerX = playerPos.x * offset;
+const playerY = playerPos.y * offset;
 
-  useEffect(() => {
-  const onKeyDown = (e: KeyboardEvent) => {
-    if (e.key === "ArrowUp")    setPlayerPos(p => ({ ...p, y: Math.max(0, p.y - 1) }));
-    if (e.key === "ArrowDown")  setPlayerPos(p => ({ ...p, y: Math.min(ROWS - 1, p.y + 1) }));
-    if (e.key === "ArrowLeft")  setPlayerPos(p => ({ ...p, x: Math.max(0, p.x - 1) }));
-    if (e.key === "ArrowRight") setPlayerPos(p => ({ ...p, x: Math.min(COLS - 1, p.x + 1) }));
+  
+// ★ 通信ログ
+const [storyLog, setStoryLog] = useState<StoryLogItem[]>([
+  { type: "text", message: "『あー、あー……聞こえる？』" },
+  { type: "text", message: "『うん！ それじゃあ今日も、よろしくね！』" },
+]);
+
+const pushText = (message: string) => {
+  setStoryLog((prev) => [...prev, { type: "text", message }]);
+};
+
+const pushEvent = (title: string, image: string, message?: string) => {
+  setStoryLog((prev) => [...prev, { type: "event", title, image, message }]);
+};
+
+const onStep = (x: number, y: number) => {
+  const { board: nextBoard, outcome } = stepOnCell(board, x, y);
+  setBoard(nextBoard);
+
+  if (outcome.type === "mine") {
+    setStatus("lost");
+    pushEvent("WARNING", "/images/events/mine.png", "地雷を踏んでしまった……！");
+    pushText("『……っ！ 今の、踏んだ……！』");
+    return;
+  }
+
+  if (outcome.type === "pickup") {
+    if (outcome.item === "heal") {
+      pushEvent("RECOVER", "/images/events/heal.png", "回復ポイントを発見！");
+      pushText("『助かる！ 応急処置できそう！』");
+    }
+    if (outcome.item === "shield") {
+      pushEvent("SHIELD", "/images/events/shield.png", "防護フィールドを展開！");
+      pushText("『これで一回は耐えられるね！』");
+    }
+    if (outcome.item === "reveal") {
+      pushEvent("SCAN", "/images/events/reveal.png", "周囲をスキャン可能！");
+      pushText("『索敵できる！ 便利〜！』");
+    }
+    return;
+  }
+
+  // safe
+  if (outcome.neighborMines > 0) {
+    pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
+  } else {
+    pushText("『ここは静か……問題なさそう。』");
+  }
+};
+
+useEffect(() => {
+  // ゲーム開始時に初期マスを自動で踏む
+  onStep(START_POS.x, START_POS.y);
+  // 初回のみ
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+}, []);
+
+useEffect(() => {
+  const moveTo = (nx: number, ny: number) => {
+    setPlayerPos({ x: nx, y: ny });
+    onStep(nx, ny); // ★踏んだ判定を発動
   };
+
+
+  const onKeyDown = (e: KeyboardEvent) => {
+    if (status !== "playing") return;
+
+    if (e.key === "ArrowUp") {
+      e.preventDefault();
+      moveTo(playerPos.x, Math.max(0, playerPos.y - 1));
+    }
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      moveTo(playerPos.x, Math.min(ROWS - 1, playerPos.y + 1));
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      moveTo(Math.max(0, playerPos.x - 1), playerPos.y);
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      moveTo(Math.min(COLS - 1, playerPos.x + 1), playerPos.y);
+    }
+  };
+
   window.addEventListener("keydown", onKeyDown);
   return () => window.removeEventListener("keydown", onKeyDown);
-}, []);
-  
-  // ★ 通信ログ
-  const [storyLog, setStoryLog] = useState<string[]>([// 初期メッセージ
-  "『あー、あー……聞こえる？』",
-  "『うん！ それじゃあ今日も、よろしくね！』",
-]);
+}, [playerPos, status, board]); 
+
+
   const [hasOpenedAnyCell, setHasOpenedAnyCell] = useState(false);// 最初の1マスを開いたかどうか
 
-  const pushStory = (line: string) => {// 通信ログに追加
+  /*const pushStory = (line: string) => {// 通信ログに追加
     setStoryLog((prev) => [...prev, line]);
-  };
+  };*/
 
 
-  const resetGame = () => {// ゲームリセット処理
-    setBoard(createBoard(ROWS, COLS, MINES));// 新しい盤面を作成
-    setStatus("playing");// ステータスをリセット
-    setHasOpenedAnyCell(false);// 最初の1マスを開いたフラグをリセット
-    setStoryLog([]);
+  const resetGame = () => {
+    const freshBoard = createBoard(ROWS, COLS, MINES);
 
+    setBoard(freshBoard);
+    setStatus("playing");
+    setHasOpenedAnyCell(false);
     setPlayerPos(START_POS);
 
-    // リセットしたらまた挨拶
-    pushStory("『通信再接続っと……よし、改めていこっか！』");
+    // ログ初期化
+    setStoryLog([
+      { type: "text", message: "『通信再接続っと……よし、改めていこっか！』" },
+    ]);
+
+    // ★初期マスを自動で開く（freshBoardを使う！）
+    const { board: opened, outcome } = stepOnCell(freshBoard, START_POS.x, START_POS.y);
+    setBoard(opened);
+
+    // 初期マスのログ（好みで）
+    if (outcome.type === "safe") {
+      if (outcome.neighborMines > 0) {
+        pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
+      } else {
+        pushText("『ここは静か……問題なさそう。』");
+      }
+    }
   };
 
   const handleLeftClick = (cell: Cell) => {
@@ -87,7 +180,7 @@ const [playerPos, setPlayerPos] = useState(START_POS);
 
     // 最初の1マスを開いたときのリアクション
     if (!hasOpenedAnyCell && !cell.hasMine) {
-      pushStory("『さて……一歩目、踏み出すよ。』");
+      pushText("『さて……一歩目、踏み出すよ。』");
       setHasOpenedAnyCell(true);
     }
 
@@ -100,7 +193,7 @@ const [playerPos, setPlayerPos] = useState(START_POS);
       );
       setBoard(newBoard);
       setStatus("lost");
-      pushStory("『……っ！ 今の、完全に踏んじゃったね……ごめん。』");
+      pushText("『……っ！ 今の、完全に踏んじゃったね……ごめん。』");
       return;
     }
 
@@ -109,16 +202,16 @@ const [playerPos, setPlayerPos] = useState(START_POS);
 
     const openedCell = openedBoard[cell.y][cell.x];
     if (openedCell.neighborMines > 0) {
-      pushStory(
+      pushText(
         `『この辺、反応が強い……周囲に ${openedCell.neighborMines} 箇所、危なそうな場所があるみたい。』`
       );
     } else {
-      pushStory("『ここは静か……戦闘の跡もなさそう。』");
+      pushText("『ここは静か……戦闘の跡もなさそう。』");
     }
 
     if (checkWin(openedBoard)) {
       setStatus("won");
-      pushStory("『やった！ これでこの区画は制圧完了だね！』");
+      pushText("『やった！ これでこの区画は制圧完了だね！』");
       onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
     }
   };
@@ -134,9 +227,9 @@ const [playerPos, setPlayerPos] = useState(START_POS);
     setBoard(newBoard);
 
     if (target.isFlagged) {
-      pushStory("『ここは危なそうだから、近づかないようにマークしとくね。』");
+      pushText("『ここは危なそうだから、近づかないようにマークしとくね。』");
     } else {
-      pushStory("『あ、ごめん。このマークはいったん外しとく。』");
+      pushText("『あ、ごめん。このマークはいったん外しとく。』");
     }
   };
 
@@ -175,8 +268,6 @@ const [playerPos, setPlayerPos] = useState(START_POS);
       }}
     >
       <h1 style={{ marginBottom: 8 }}>MISORIA : Frontier（仮）</h1>
-      {/*<p style={{ marginBottom: 4, fontSize: 14 }}>簡易マインスイーパー版</p>*/}
-
       <div style={{ marginBottom: 8 }}>状態：{statusText}</div>
       <button
         onClick={resetGame}

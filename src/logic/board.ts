@@ -5,6 +5,13 @@ export const ROWS = 9;
 export const COLS = 9;
 export const MINES = 10;
 
+export type ItemType = "heal" | "reveal" | "shield";
+
+export type StepOutcome =
+  | { type: "safe"; neighborMines: number }
+  | { type: "mine" }
+  | { type: "pickup"; item: ItemType };
+
 function createEmptyBoard(rows: number, cols: number): Cell[][] {
   const board: Cell[][] = [];
   for (let y = 0; y < rows; y++) {
@@ -17,8 +24,11 @@ function createEmptyBoard(rows: number, cols: number): Cell[][] {
         isOpen: false,
         isFlagged: false,
         neighborMines: 0,
-        hasPlayer: false,
-      });
+        // hasPlayer は「使わない」方針なら消してOK
+        // hasPlayer: false,
+        // item は Cell に追加してる前提（後述）
+        item: undefined,
+      } as Cell);
     }
     board.push(row);
   }
@@ -45,7 +55,6 @@ function placeMines(
     const x = Math.floor(Math.random() * cols);
     const y = Math.floor(Math.random() * rows);
 
-    // ★自機などの禁止マスはスキップ
     if (forbiddenSet.has(`${x},${y}`)) continue;
 
     if (!newBoard[y][x].hasMine) {
@@ -61,6 +70,7 @@ function countNeighborMines(board: Cell[][], x: number, y: number): number {
   const rows = board.length;
   const cols = board[0].length;
   let count = 0;
+
   for (let dy = -1; dy <= 1; dy++) {
     for (let dx = -1; dx <= 1; dx++) {
       if (dx === 0 && dy === 0) continue;
@@ -85,26 +95,22 @@ function computeNeighborCounts(board: Cell[][]): Cell[][] {
       }
     }
   }
-
   return newBoard;
 }
 
-// 盤面を新しく作る
+// 盤面を新しく作る（自機スポーン位置は「地雷禁止」だけ適用）
 export function createBoard(
   rows: number = ROWS,
   cols: number = COLS,
   mines: number = MINES
 ): Cell[][] {
-  let empty = createEmptyBoard(rows, cols);
+  const empty = createEmptyBoard(rows, cols);
 
-  // ★自機を最下段中央に置く
   const { x: px, y: py } = getPlayerStart(rows, cols);
-  empty = empty.map((row) => row.map((c) => ({ ...c })));
-  empty[py][px].hasPlayer = true;
 
-  // ★自機マスは地雷禁止
   const withMines = placeMines(empty, mines, [{ x: px, y: py }]);
   const withCounts = computeNeighborCounts(withMines);
+
   return withCounts;
 }
 
@@ -113,12 +119,38 @@ export function cloneBoard(board: Cell[][]): Cell[][] {
   return board.map((row) => row.map((c) => ({ ...c })));
 }
 
-// クリックされたマスから広がる開放処理
-export function openCellsRecursive(
+// 「踏んだ」結果だけ返す（UI文言は入れない）
+export function stepOnCell(
   board: Cell[][],
   x: number,
   y: number
-): Cell[][] {
+): { board: Cell[][]; outcome: StepOutcome } {
+  const newBoard = cloneBoard(board);
+  const cell = newBoard[y][x];
+
+  // 踏んだマスだけ開く
+  cell.isOpen = true;
+
+  // 地雷
+  if (cell.hasMine) {
+    return { board: newBoard, outcome: { type: "mine" } };
+  }
+
+  // アイテム
+  if (cell.item) {
+    const item = cell.item;
+    cell.item = undefined; // 取得したら消す
+    return { board: newBoard, outcome: { type: "pickup", item } };
+  }
+
+  return {
+    board: newBoard,
+    outcome: { type: "safe", neighborMines: cell.neighborMines },
+  };
+}
+
+// クリックされたマスから広がる開放処理（旧マインスイーパー用）
+export function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[][] {
   const rows = board.length;
   const cols = board[0].length;
   const newBoard = cloneBoard(board);
@@ -150,13 +182,11 @@ export function openCellsRecursive(
   return newBoard;
 }
 
-// 勝利判定
+// 勝利判定（旧ルール）
 export function checkWin(board: Cell[][]): boolean {
   for (const row of board) {
     for (const cell of row) {
-      if (!cell.hasMine && !cell.isOpen) {
-        return false;
-      }
+      if (!cell.hasMine && !cell.isOpen) return false;
     }
   }
   return true;
