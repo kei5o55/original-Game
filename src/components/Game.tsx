@@ -3,6 +3,8 @@ import React, { useState,useEffect} from "react";
 import "./Game.css"
 import type { Cell, GameStatus, ChapterId, StoryLogItem } from "../logic/types";
 import {stepOnCell} from "../logic/board";
+import StoryPanel from "./StoryPanel";
+import { scriptForOutcome } from "../story/scripts";
 
 import {
   ROWS,
@@ -13,7 +15,6 @@ import {
   openCellsRecursive,
   checkWin,
 } from "../logic/board";
-import StoryPanel from "./StoryPanel";
 
 const cellSize = 32;
 const START_POS = { x: Math.floor(COLS / 2), y: ROWS - 1 };
@@ -61,43 +62,18 @@ const pushText = (message: string) => {
   setStoryLog((prev) => [...prev, { type: "text", message }]);
 };
 
-const pushEvent = (title: string, image: string, message?: string) => {
-  setStoryLog((prev) => [...prev, { type: "event", title, image, message }]);
+const pushLogs = (items: StoryLogItem[]) => {
+  setStoryLog(prev => [...prev, ...items]);
 };
 
 const onStep = (x: number, y: number) => {
   const { board: nextBoard, outcome } = stepOnCell(board, x, y);
   setBoard(nextBoard);
 
-  if (outcome.type === "mine") {
-    setStatus("lost");
-    pushEvent("WARNING", "/images/events/mine.png", "地雷を踏んでしまった……！");
-    pushText("『……っ！ 今の、踏んだ……！』");
-    return;
-  }
+  if(outcome.type==="mine") setStatus("lost");
 
-  if (outcome.type === "pickup") {
-    if (outcome.item === "heal") {
-      pushEvent("RECOVER", "/images/events/heal.png", "回復ポイントを発見！");
-      pushText("『助かる！ 応急処置できそう！』");
-    }
-    if (outcome.item === "shield") {
-      pushEvent("SHIELD", "/images/events/shield.png", "防護フィールドを展開！");
-      pushText("『これで一回は耐えられるね！』");
-    }
-    if (outcome.item === "reveal") {
-      pushEvent("SCAN", "/images/events/reveal.png", "周囲をスキャン可能！");
-      pushText("『索敵できる！ 便利〜！』");
-    }
-    return;
-  }
-
-  // safe
-  if (outcome.neighborMines > 0) {
-    pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
-  } else {
-    pushText("『ここは静か……問題なさそう。』");
-  }
+  pushLogs(scriptForOutcome(outcome,{chapter}));
+  
 };
 
 useEffect(() => {
@@ -142,10 +118,6 @@ useEffect(() => {
 
   const [hasOpenedAnyCell, setHasOpenedAnyCell] = useState(false);// 最初の1マスを開いたかどうか
 
-  /*const pushStory = (line: string) => {// 通信ログに追加
-    setStoryLog((prev) => [...prev, line]);
-  };*/
-
 
   const resetGame = () => {
     const freshBoard = createBoard(ROWS, COLS, MINES);
@@ -174,7 +146,7 @@ useEffect(() => {
     }
   };
 
-  const handleLeftClick = (cell: Cell) => {
+  const handleLeftClick = (cell: Cell) => {//勝利判定のやつ（一応残しておく
     if (status !== "playing") return;
     if (cell.isOpen || cell.isFlagged) return;
 
@@ -199,15 +171,6 @@ useEffect(() => {
 
     const openedBoard = openCellsRecursive(board, cell.x, cell.y);
     setBoard(openedBoard);
-
-    const openedCell = openedBoard[cell.y][cell.x];
-    if (openedCell.neighborMines > 0) {
-      pushText(
-        `『この辺、反応が強い……周囲に ${openedCell.neighborMines} 箇所、危なそうな場所があるみたい。』`
-      );
-    } else {
-      pushText("『ここは静か……戦闘の跡もなさそう。』");
-    }
 
     if (checkWin(openedBoard)) {
       setStatus("won");
@@ -234,9 +197,6 @@ useEffect(() => {
   };
 
   const renderCellContent = (cell: Cell) => {
-    //const isPlayerHere = cell.x === playerPos.x && cell.y === playerPos.y;
-    //if (isPlayerHere) return "🙂"; // 仮
-
     if (!cell.isOpen) {
       if (cell.isFlagged) return "🚩";
       return "";
