@@ -1,4 +1,5 @@
 // src/logic/types.ts
+export type ItemType = "heal" | "reveal" | "shield";
 
 export type Cell = {
   x: number;
@@ -7,8 +8,15 @@ export type Cell = {
   isOpen: boolean;
   isFlagged: boolean;
   neighborMines: number;
-  hasPlayer: boolean;
+
+  item?: ItemType; // ★追加
+  // hasPlayer?: boolean; // A方式なら不要
 };
+
+export type StoryLogItem =
+  | { type: "text"; message: string }
+  | { type: "image"; src: string; alt?: string }
+  | { type: "event"; title: string; image: string; message?: string };
 
 export type GameStatus = "playing" | "won" | "lost";
 
