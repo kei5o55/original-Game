@@ -9,8 +9,10 @@ export type Cell = {
   isFlagged: boolean;
   neighborMines: number;
 
-  item?: ItemType; // ★追加
-  // hasPlayer?: boolean; // A方式なら不要
+  item?: ItemType;
+  hasPlayer?: boolean; 
+  eventId?:string;
+  isGoal?:boolean;
 };
 
 export type StoryLogItem =

@@ -7,7 +7,6 @@ import StoryPanel from "./StoryPanel";
 import { scriptForOutcome } from "../story/scripts";
 import { CHAPTER_CONFIG } from "../logic/chapters";
 
-
 import {
   createBoard,
   cloneBoard,
@@ -16,7 +15,6 @@ import {
 } from "../logic/board";
 
 const cellSize = 32;
-
 
 type GameProps = {
     chapter: ChapterId;
@@ -29,9 +27,6 @@ const characterImageByStatus: Record<GameStatus, string> = {
   won: "/images/a.png",
   lost: "/images/a.png",
 };
-
-
-
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
@@ -219,6 +214,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         return "";
       }
       if (cell.hasMine) return "💣";
+      if (cell.isGoal) return "🚪";
+      if (cell.eventId) return "📡";   // まだ回収前なら表示
+      if (cell.item) return "🎁";
       if (cell.neighborMines === 0) return "";
       return cell.neighborMines;
     };
