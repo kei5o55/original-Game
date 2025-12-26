@@ -10,9 +10,12 @@ export type ChapterConfig = {
 
 export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
   chapter1: {
-    rows: 9,
-    cols: 9,
-    mines: 10,
+    //rows: 9,
+    rows:5,
+    //cols: 9,
+    cols:5,
+    //mines: 10,
+    mines:1,
     requiredEvents: 3,
     maxHp: 3,
   },
