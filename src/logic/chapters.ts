@@ -6,6 +6,7 @@ export type ChapterConfig = {
   mines: number;
   requiredEvents: number;
   maxHp: number;
+  requiredItems: number;
 };
 
 export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
@@ -18,6 +19,7 @@ export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
     mines:1,
     requiredEvents: 3,
     maxHp: 3,
+    requiredItems:3,
   },
   chapter2: {
     rows: 12,
@@ -25,6 +27,7 @@ export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
     mines: 18,
     requiredEvents: 5,
     maxHp: 3,
+    requiredItems:3,
   },
   chapter3: {
     rows: 16,
@@ -32,6 +35,7 @@ export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
     mines: 28,
     requiredEvents: 7,
     maxHp: 4,
+    requiredItems:3,
   },
   chapter4: {
     rows: 16,
@@ -39,5 +43,6 @@ export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
     mines: 28,
     requiredEvents: 7,
     maxHp: 4,
+    requiredItems:3,
   },
 };

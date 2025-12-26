@@ -26,7 +26,7 @@ export function scriptForOutcome(outcome: StepOutcome, ctx: ScriptContext): Stor
   }
 }
 
-function scriptForItem(item: "heal" | "reveal" | "shield"): StoryLogItem[] {
+function scriptForItem(item: "heal" | "reveal" | "shield"|"key"): StoryLogItem[] {
   if (item === "heal") {
     return [
       { type: "event", title: "RECOVER", image: "/images/events/heal.png", message: "回復ポイントを発見！" },
