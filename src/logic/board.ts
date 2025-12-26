@@ -161,8 +161,8 @@ export function stepOnCell(board: Cell[][], x: number, y: number) {
 }
 // クリックされたマスから広がる開放処理（旧マインスイーパー用）
 export function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[][] {
-  const rows = board.length;
-  const cols = board[0].length;
+  //const rows = board.length;
+  //const cols = board[0].length;
   const newBoard = cloneBoard(board);
   const stack: { x: number; y: number }[] = [{ x, y }];
 
@@ -173,7 +173,7 @@ export function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[
     if (cell.isOpen || cell.isFlagged) continue;
     cell.isOpen = true;
 
-    if (cell.neighborMines === 0 && !cell.hasMine) {
+    /*if (cell.neighborMines === 0 && !cell.hasMine) {//マインスイーパー用
       for (let dy = -1; dy <= 1; dy++) {
         for (let dx = -1; dx <= 1; dx++) {
           if (dx === 0 && dy === 0) continue;
@@ -186,7 +186,7 @@ export function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[
           }
         }
       }
-    }
+    }*/
   }
 
   return newBoard;

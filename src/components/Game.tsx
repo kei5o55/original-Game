@@ -10,7 +10,7 @@ import { CHAPTER_CONFIG } from "../logic/chapters";
 import {
   createBoard,
   cloneBoard,
-  openCellsRecursive,
+  openCellsRecursive,//マインスイーパー用
   checkWin,
 } from "../logic/board";
 
@@ -71,7 +71,11 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     if(outcome.type==="mine") setStatus("lost");
 
     pushLogs(scriptForOutcome(outcome,{chapter}));
-    
+     if (checkWin(nextBoard)) {
+        setStatus("won");
+        pushText("『やった！ これでこの区画は制圧完了だね！』");
+        onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
+    }
   };
 
   useEffect(() => {
@@ -115,6 +119,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         e.preventDefault();
         moveTo(Math.min(config.cols - 1, playerPos.x + 1), playerPos.y);
       }
+      
     };
 
     window.addEventListener("keydown", onKeyDown);
@@ -184,7 +189,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       const openedBoard = openCellsRecursive(board, cell.x, cell.y);
       setBoard(openedBoard);
 
-      if (checkWin(openedBoard)) {
+      if (checkWin(board)) {
         setStatus("won");
         pushText("『やった！ これでこの区画は制圧完了だね！』");
         onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
