@@ -5,12 +5,12 @@ export const ROWS = 9;
 export const COLS = 9;
 export const MINES = 10;
 
-export type ItemType = "heal" | "reveal" | "shield";
+export type ItemType = "heal" | "reveal" | "shield" | "key";
 
 export type StepOutcome =
   | { type: "safe"; neighborMines: number }
   | { type: "mine" }
-  | { type: "pickup"; item: "heal" | "reveal" | "shield" }
+  | { type: "pickup"; item: ItemType }
   | { type: "event"; eventId: string }
   | { type: "goal" };
 
@@ -105,10 +105,14 @@ export function createBoard(rows = ROWS, cols = COLS, mines = MINES): Cell[][] {
   const empty = createEmptyBoard(rows, cols);
 
   const start = { x: Math.floor(cols / 2), y: rows - 1 };
-  empty[start.y][start.x].hasPlayer = true;
+  function getGoalPos(rows: number, cols: number) {//ゴール位置追加
+    return { x: Math.floor(cols / 2), y: 0 };
+  }
+  const goal = getGoalPos(rows, cols);
+  empty[goal.y][goal.x].isGoal = true;
 
   // スタートは「地雷/アイテム/イベント禁止」
-  const forbidden = [start];
+  const forbidden = [start,goal];
 
   const withMines = placeMines(empty, mines, forbidden);
 
@@ -116,11 +120,12 @@ export function createBoard(rows = ROWS, cols = COLS, mines = MINES): Cell[][] {
   const withItems = placeItems(withMines, [
     { type: "heal", count: 2 },
     { type: "shield", count: 1 },
+    { type: "key",count: 1},
   ], forbidden);
 
   // 追加：イベント置く（例）
   const withEvents = placeEvents(withItems, ["signal_a", "signal_b", "signal_c"], forbidden);
-
+  
   const withCounts = computeNeighborCounts(withEvents);
   return withCounts;
 }
@@ -156,6 +161,7 @@ export function stepOnCell(board: Cell[][], x: number, y: number) {
     cell.item = undefined;
     return { board: newBoard, outcome: { type: "pickup", item } as const };
   }
+  
 
   return { board: newBoard, outcome: { type: "safe", neighborMines: cell.neighborMines } as const };
 }
@@ -204,7 +210,7 @@ export function checkWin(board: Cell[][]): boolean {
 
 function placeItems(
   board: Cell[][],
-  items: { type: "heal" | "reveal" | "shield"; count: number }[],
+  items: { type:ItemType; count: number }[],
   forbidden: { x: number; y: number }[] = []
 ): Cell[][] {
   const rows = board.length;

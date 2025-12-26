@@ -1,5 +1,5 @@
 // src/logic/types.ts
-export type ItemType = "heal" | "reveal" | "shield";
+export type ItemType = "heal" | "reveal" | "shield" | "key";
 
 export type Cell = {
   x: number;

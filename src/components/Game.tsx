@@ -29,12 +29,28 @@ const characterImageByStatus: Record<GameStatus, string> = {
 };
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
-
+  const [collectedCount, setCollectedCount] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const [collectedItems, setCollectedItems] = useState(0);
   const config = CHAPTER_CONFIG[chapter];
   const START_POS = {
     x: Math.floor(config.cols / 2),
     y: config.rows - 1,
   };
+  const countItemsOnBoard = (b: Cell[][]) => {
+    let n = 0;
+    for (const row of b) {
+      for (const cell of row) {
+        if (cell.item) n++;
+      }
+    }
+    return n;
+  };
+  useEffect(() => {
+    setTotalItems(countItemsOnBoard(board));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 初回だけ
+
   const [board, setBoard] = useState<Cell[][]>(() =>
     createBoard(config.rows, config.cols, config.mines)
   );
@@ -48,6 +64,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const offset = cellSize + gap;
   const playerX = playerPos.x * offset;
   const playerY = playerPos.y * offset;
+  
 
     
   // ★ 通信ログ
@@ -68,13 +85,32 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     const { board: nextBoard, outcome } = stepOnCell(board, x, y);
     setBoard(nextBoard);
 
-    if(outcome.type==="mine") setStatus("lost");
-
+    const collectedNow =
+      totalItems - countItemsOnBoard(nextBoard); // 残りから逆算
+    
+    if (outcome.type === "pickup") {
+      setCollectedItems((c) => c + 1);
+    }
+    if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
+    if (outcome.type === "pickup") {// アイテム取得時
+      setCollectedCount((c) => c + 1);
+    }
     pushLogs(scriptForOutcome(outcome,{chapter}));
      if (checkWin(nextBoard)) {
-        setStatus("won");
+        //setStatus("won");
         pushText("『やった！ これでこの区画は制圧完了だね！』");
-        onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
+        //onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
+    }
+    // ゴール踏んだ時の判定
+    if (outcome.type === "goal") {
+      if (collectedNow >= totalItems) { // ←後述
+        setStatus("won");
+        pushText("『必要なデータは全部集まった……！ ゴールに到達！』");
+        onCleared(chapter);
+      } else {
+        pushText(`『まだ回収が残ってる…残り ${totalItems - collectedNow} 個！』`);
+      }
+      return;
     }
   };
 
@@ -132,7 +168,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
     const resetGame = () => {
       const freshBoard = createBoard(config.rows, config.cols, config.mines);
-
+      setTotalItems(countItemsOnBoard(freshBoard));
+      setCollectedItems(0);
       setBoard(freshBoard);
       setPlayerPos({
         x: Math.floor(config.cols / 2),
@@ -192,7 +229,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       if (checkWin(board)) {
         setStatus("won");
         pushText("『やった！ これでこの区画は制圧完了だね！』");
-        onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
+        //onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
       }
     };
 
@@ -213,15 +250,18 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       }
     };
 
-    const renderCellContent = (cell: Cell) => {
-      if (!cell.isOpen) {
+    const renderCellContent = (cell: Cell, isInVision: boolean) => {
+
+      const canShow = cell.isOpen || isInVision;
+      if (!canShow) {
         if (cell.isFlagged) return "🚩";
         return "";
       }
-      if (cell.hasMine) return "💣";
+      if (cell.hasMine && cell.isOpen) return "💣";
       if (cell.isGoal) return "🚪";
       if (cell.eventId) return "📡";   // まだ回収前なら表示
       if (cell.item) return "🎁";
+      if (cell.isGoal) return "🚪";
       if (cell.neighborMines === 0) return "";
       return cell.neighborMines;
     };
@@ -291,7 +331,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       }}
     >
       {board.map((row) =>
-        row.map((cell) => (
+        row.map((cell) => {
+          const isInVision = Math.abs(cell.x - playerPos.x) + Math.abs(cell.y - playerPos.y) <= 1;
+          return (
           <button
             key={`${cell.x}-${cell.y}`}
             onClick={() => handleLeftClick(cell)}
@@ -304,7 +346,13 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               lineHeight: 1,
               boxSizing: "border-box",
               border: "1px solid #374151",
-              background: cell.isOpen ? "#1f2937" : "#111827",
+              background: isInVision
+                ? cell.isOpen
+                  ? "#27324a"
+                  : "#1a2140"
+                : cell.isOpen
+                ? "#1f2937"
+                : "#111827",
               color: cell.hasMine
                 ? "#f97373"
                 : cell.neighborMines === 1
@@ -323,13 +371,14 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               userSelect: "none",
             }}
           >
-            {renderCellContent(cell)}
+            {renderCellContent(cell, isInVision)}
           </button>
-        ))
+        );
+      })
       )}
     </div>
 
-    {/* ▼ ★自機レイヤー（ここ！） */}
+    {/*自機レイヤー*/}
     <div
     style={{
       position: "absolute",
@@ -343,8 +392,11 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     <div className="player-face">🙂</div>
   </div>
   </div>
-
+      <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 8 }}>
+        回収：{collectedItems} / {totalItems}
+      </div>
           <div
+            
             style={{
               display: "flex",
               flexDirection: "column",
