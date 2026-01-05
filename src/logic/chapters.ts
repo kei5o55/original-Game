@@ -17,7 +17,7 @@ export const CHAPTER_CONFIG: Record<ChapterId, ChapterConfig> = {
     cols:5,
     //mines: 10,
     mines:1,
-    requiredEvents: 3,
+    requiredEvents: 1,
     maxHp: 3,
     requiredItems:3,
   },

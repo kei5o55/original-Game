@@ -94,10 +94,12 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
     if (outcome.type === "pickup") {// アイテム取得時
       setCollectedCount((c) => c + 1);
+      if(collectedNow==totalItems){
+        pushText("『必要なデータは全部集まった……！ ゴールに向かおう！』")
+      }
     }
     pushLogs(scriptForOutcome(outcome,{chapter}));
-     if (checkWin(nextBoard)) {
-        //setStatus("won");
+     if (checkWin(nextBoard)) {//地雷マス以外開いたとき
         pushText("『やった！ これでこの区画は制圧完了だね！』");
         //onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
     }
@@ -105,7 +107,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     if (outcome.type === "goal") {
       if (collectedNow >= totalItems) { // ←後述
         setStatus("won");
-        pushText("『必要なデータは全部集まった……！ ゴールに到達！』");
+        pushText("『ゴールに到達！』");
         onCleared(chapter);
       } else {
         pushText(`『まだ回収が残ってる…残り ${totalItems - collectedNow} 個！』`);
@@ -124,7 +126,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // 初期マスを踏む（freshを使うのが安全）
     const { board: opened, outcome } = stepOnCell(fresh, START_POS.x, START_POS.y);
     setBoard(opened);
-    pushLogs(scriptForOutcome(outcome, { chapter }));
+    //pushLogs(scriptForOutcome(outcome, { chapter }));//新規開始時にログが二十で出る不具合があるためいったん非表示（このままでいいかも）
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter]);
@@ -226,11 +228,10 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       const openedBoard = openCellsRecursive(board, cell.x, cell.y);
       setBoard(openedBoard);
 
-      if (checkWin(board)) {
+      /*if (checkWin(board)) {
         setStatus("won");
         pushText("『やった！ これでこの区画は制圧完了だね！』");
-        //onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
-      }
+      }*/
     };
 
     const handleRightClick = (e: React.MouseEvent, cell: Cell) => {
