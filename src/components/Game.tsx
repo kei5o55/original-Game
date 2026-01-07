@@ -88,11 +88,12 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     const collectedNow =
       totalItems - countItemsOnBoard(nextBoard); // 残りから逆算
     
-    if (outcome.type === "pickup") {
+    if (outcome.type === "pickup") {//アイテム拾った処理（下でもやってるからいらないかも）ゴール条件とは別にアイテムを追加するならifでいい
       setCollectedItems((c) => c + 1);
     }
     if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
     if (outcome.type === "pickup") {// アイテム取得時
+      
       setCollectedCount((c) => c + 1);
       if(collectedNow==totalItems){
         pushText("『必要なデータは全部集まった……！ ゴールに向かおう！』")
@@ -372,7 +373,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               userSelect: "none",
             }}
           >
-            {renderCellContent(cell, isInVision)}
+            <div className="glow">{renderCellContent(cell, isInVision)}</div>
           </button>
         );
       })
