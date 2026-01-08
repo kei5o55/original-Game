@@ -57,7 +57,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     <div
       onClick={handleNext}
       style={{
-        minHeight: "100vh",
+        position:"fixed",
+        inset:"0",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
@@ -72,10 +73,14 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
       <div
         style={{
           width: "min(720px, 92vw)",
+          minHeight:180,
           background: "rgba(15,23,42,0.9)",
           padding: 24,
           borderRadius: 12,
           boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
+          display:"flex",
+          flexDirection:"column",
+          justifyContent:"space-between",
         }}
       >
         <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 10 }}>
