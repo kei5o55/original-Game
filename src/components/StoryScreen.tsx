@@ -1,5 +1,5 @@
 // src/components/StoryScreen.tsx
-import React from "react";
+import React, { useMemo, useState } from "react";
 import type { ChapterId } from "../logic/types";
 
 type StoryScreenProps = {
@@ -8,35 +8,54 @@ type StoryScreenProps = {
   onFinish: () => void;
 };
 
-const StoryScreen: React.FC<StoryScreenProps> = ({
-  chapter,
-  phase,
-  onFinish,
-}) => {
-  // 仮テキスト（あとで外部ファイル化する想定）
-  const textMap: Record<ChapterId, { intro: string; outro: string }> = {
-    chapter1: {
-      intro: "ここは最初のセクター",
-      outro: "次のエリアへ向かおう。",
-    },
-    chapter2: {
-      intro: "通信状況が不安定だ……。",
-      outro: "新たな異常反応を確認。",
-    },
-    chapter3: {
-      intro: "さらに奥地へ",
-      outro: "嫌な予感がする……。",
-    },
-    chapter4: {
-      intro: "最深部",
-      outro: "任務完了",
-    },
-  };
+const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) => {
+  // 仮：章ごとの文章（あとで外部ファイル化しやすい形）
+  const lines = useMemo(() => {
+    const map: Record<ChapterId, { intro: string[]; outro: string[] }> = {
+      chapter1: {
+        intro: [
+          "1",
+          "2",
+          "3",
+        ],
+        outro: [
+          "4",
+          "5",
+        ],
+      },
+      chapter2: {
+        intro: ["6"],
+        outro: ["7"],
+      },
+      chapter3: {
+        intro: ["8"],
+        outro: ["9"],
+      },
+      chapter4: {
+        intro: ["10"],
+        outro: ["11"],
+      },
+    };
 
-  const text = textMap[chapter][phase];
+    return map[chapter][phase];
+  }, [chapter, phase]);
+
+  const [index, setIndex] = useState(0);
+
+  const isLast = index >= lines.length - 1;
+  const currentLine = lines[index] ?? "";
+
+  const handleNext = () => {
+    if (isLast) {
+      onFinish(); // ★ 全文終わったら画面遷移（introならゲームへ）
+      return;
+    }
+    setIndex((i) => i + 1);
+  };
 
   return (
     <div
+      onClick={handleNext}
       style={{
         minHeight: "100vh",
         display: "flex",
@@ -46,38 +65,42 @@ const StoryScreen: React.FC<StoryScreenProps> = ({
         color: "#f5f5f5",
         fontFamily: "sans-serif",
         padding: 24,
+        cursor: "pointer",
+        userSelect: "none",
       }}
     >
       <div
         style={{
-          maxWidth: 600,
+          width: "min(720px, 92vw)",
           background: "rgba(15,23,42,0.9)",
           padding: 24,
           borderRadius: 12,
           boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
-          textAlign: "center",
         }}
       >
-        <h2 style={{ marginBottom: 16 }}>
-          {phase === "intro" ? "MISSION START" : "MISSION COMPLETE"}
-        </h2>
+        <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 10 }}>
+          {phase === "intro" ? "MISSION START" : "MISSION COMPLETE"} / {chapter}
+        </div>
 
-        <p style={{ lineHeight: 1.8, marginBottom: 24 }}>{text}</p>
+        <div style={{ fontSize: 18, lineHeight: 1.9, minHeight: 90 }}>
+          {currentLine}
+        </div>
 
-        <button
-          onClick={onFinish}
+        <div
           style={{
-            padding: "8px 20px",
-            borderRadius: 8,
-            border: "none",
-            cursor: "pointer",
-            background: "#2563eb",
-            color: "#fff",
-            fontSize: 14,
+            marginTop: 18,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            opacity: 0.75,
+            fontSize: 12,
           }}
         >
-          {phase === "intro" ? "出撃する" : "次へ"}
-        </button>
+          <span>
+            {index + 1} / {lines.length}
+          </span>
+          <span>{isLast ? "クリックで進む" : "クリックで次へ"}</span>
+        </div>
       </div>
     </div>
   );
