@@ -335,6 +335,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       {board.map((row) =>
         row.map((cell) => {
           const isInVision = Math.abs(cell.x - playerPos.x) + Math.abs(cell.y - playerPos.y) <= 1;
+          const showGlow = isInVision && (cell.item);//上下左右かつアイテムありの場合のみ発光
           return (
           <button
             key={`${cell.x}-${cell.y}`}
@@ -373,7 +374,10 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               userSelect: "none",
             }}
           >
-            <div className="glow">{renderCellContent(cell, isInVision)}</div>
+            {/* ★ 発光は div に */}
+            <div className={`cell-inner ${showGlow ? "cell-glow" : ""}`}>
+              {renderCellContent(cell, isInVision)}
+            </div>
           </button>
         );
       })

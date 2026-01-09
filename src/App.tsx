@@ -4,11 +4,16 @@ import Game from "./components/Game";
 import Title from "./components/Title";
 import MapSelect from "./components/MapSelect";
 import type { ChapterId } from "./logic/types";
+import StoryScreen from "./components/StoryScreen";
 
-type Scene = "title" | "select" | "game";
+type Scene =
+  | { type: "title" }
+  | { type: "select" }
+  | { type: "story"; phase: "intro" | "outro" }
+  | { type: "game" };
 
 const App: React.FC = () => {
-  const [scene, setScene] = useState<Scene>("title");
+  const [scene, setScene] = useState<Scene>({type:"title"});
 
 
   // どの章まで解放されているか
@@ -31,33 +36,47 @@ const App: React.FC = () => {
       return Array.from(set);// 重複なく配列にして返す
     });
 
-    // クリアしたら選択画面に戻る
-    //setScene("select");
+    // クリアしたらアウトロストーリー画面へ
+    setScene({type:"story",phase:"outro"});
   };
 
   return (
     <>
-      {scene === "title" && (
-        <Title onStart={() => setScene("select")} />
+      {scene.type === "title" && (
+        <Title onStart={() => setScene({type:"select"})} />
       )}
 
-      {scene === "select" && (
+      {scene.type === "select" && (
         <MapSelect
           unlockedChapters={unlockedChapters}// 解放済みの章を渡す
           onSelectChapter={(chapter) => {// 章を選んだらゲーム画面へ
             setCurrentChapter(chapter);// 選んだ章をセット
-            setScene("game");// ゲーム画面へ
+            setScene({type:"story",phase:"intro"});// ストーリー画面へ
           }}
-          onBackTitle={() => setScene("title")}// タイトルに戻る
+          onBackTitle={() => setScene({type:"title"})}// タイトルに戻る
         />
       )}
 
-      {scene === "game" && currentChapter && (// currentChapter が null でないとき
+      {scene.type === "story" && currentChapter && (
+        <StoryScreen
+          chapter={currentChapter}
+          phase={scene.phase}
+          onFinish={() => {
+            if (scene.phase === "intro") {
+              setScene({ type: "game" });
+            } else {
+              setScene({ type: "select" });
+            }
+          }}
+        />
+      )}
+
+      {scene.type === "game" && currentChapter && (// currentChapter が null でないとき
         <Game
           key={currentChapter} // 章が変わったらコンポーネントを再作成してリセット
           chapter={currentChapter}// 今の章を渡す
           onCleared={handleChapterCleared}// クリア時の処理(handleChapterCleared)
-          onBackToSelect={() => setScene("select")}// 選択画面に戻る(ボタンで呼ぶ)
+          onBackToSelect={() => setScene({type:"select"})}// 選択画面に戻る(ボタンで呼ぶ)
         />
       )}
     </>
