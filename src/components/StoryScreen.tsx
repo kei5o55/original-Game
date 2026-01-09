@@ -29,9 +29,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     const map: Record<ChapterId, { intro: StoryLine[]; outro: StoryLine[] }> = {
       chapter1: {
         intro: [
-          {text: "1テスト文章です。\n\n改行できてる？",expression: "neutral"},
+          {text: "1テスト文章です。\n\n\n\n\n改行できてる？",expression: "neutral"},
           {text: "2",expression: "happy"},
-          {text: "3",expression: "neutral"},
+          {text: "3"},
           {text: "ここは多分普通"}
         ],
         outro: [
@@ -61,8 +61,6 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
   const isLast = index >= lines.length - 1;
 
   const current = lines[index] ?? { text: "" };
-
-  //const portraitSrc = portraitByExpression[current.expression ?? "neutral"];
 
   const handleNext = () => {
     if (isLast) {
@@ -103,39 +101,42 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
       <div
         style={{
           width: "min(720px, 92vw)",
-          minHeight:180,
+          height:400,
           background: "rgba(15,23,42,0.9)",
           padding: 24,
           borderRadius: 12,
           boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
           display:"flex",
           flexDirection:"column",
-          justifyContent:"space-between",
+          gap:12,
         }}
       >
-        <div style={{ opacity: 0.75, fontSize: 12, marginBottom: 10 }}>
+        <div style={{ opacity: 0.75, fontSize: 12}}>
           {phase === "intro" ? "MISSION START" : "MISSION COMPLETE"} / {chapter}
         </div>
-
-        <div style={{ fontSize: 18, lineHeight: 1.9, minHeight: 90,whiteSpace: 'pre-wrap'}}>
-          {current.text}
-        </div>
         
-        <img
-              src={portraitSrc}
-              alt="主人公"
-              style={{
-                width: "50%",
+        <img //人物画像
+            src={portraitSrc}
+            alt="主人公"
+            style={{
+                width: "55%",
                 height: "auto",
                 borderRadius: 8,
                 objectFit: "cover",
                 marginBottom: 8,
-              }}
-            />
+                alignSelf: "center",
+            }}
+        />
+
+        <div style={{ flex:"11 auto",fontSize: 18, lineHeight: 1.9,minHeight: 120,whiteSpace: 'pre-wrap',paddingRight: 6,overflowY: 'auto', }}>
+          {current.text} {/*テキスト*/}
+        </div>
+        
+        
         <div
         
           style={{
-            marginTop: 18,
+            marginTop: "auto",
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
