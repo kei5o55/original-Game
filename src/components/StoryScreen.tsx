@@ -1,5 +1,5 @@
 // src/components/StoryScreen.tsx
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import type { ChapterId } from "../logic/types";
 
 type StoryScreenProps = {
@@ -8,38 +8,48 @@ type StoryScreenProps = {
   onFinish: () => void;
 };
 
-const character = {
-  a: "/images/a.png",
-  b: "/images/a.png",
-  c: "/images/a.png",
+
+type Expression = "neutral" | "happy";// 他の表情も追加可能
+
+type StoryLine = {
+  text: string;
+  expression?: Expression; // 省略したら前の表情を引き継ぐ、みたいにもできる
 };
+
+const portraitByExpression: Record<Expression, string> = {
+  neutral: "/images/a.png",
+  happy: "/images/b.png",
+};
+
+
 
 const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) => {
   // 仮：章ごとの文章（あとで外部ファイル化しやすい形）
   const lines = useMemo(() => {
-    const map: Record<ChapterId, { intro: string[]; outro: string[] }> = {
+    const map: Record<ChapterId, { intro: StoryLine[]; outro: StoryLine[] }> = {
       chapter1: {
         intro: [
-          "1テスト文章です。\n\n改行できてる？",
-          "2",
-          "3",
+          {text: "1テスト文章です。\n\n改行できてる？",expression: "neutral"},
+          {text: "2",expression: "happy"},
+          {text: "3",expression: "neutral"},
+          {text: "ここは多分普通"}
         ],
         outro: [
-          "4",
-          "5",
+          {text: "4"},
+          {text: "5"},
         ],
       },
       chapter2: {
-        intro: ["6"],
-        outro: ["7"],
+        intro: [{text: "6"}],
+        outro: [{text: "7"}],
       },
       chapter3: {
-        intro: ["8"],
-        outro: ["9"],
+        intro: [{text: "8"}],
+        outro: [{text: "9"}],
       },
       chapter4: {
-        intro: ["10"],
-        outro: ["11"],
+        intro: [{text: "10"}],
+        outro: [{text: "11"}],
       },
     };
 
@@ -49,15 +59,29 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
   const [index, setIndex] = useState(0);
 
   const isLast = index >= lines.length - 1;
-  const currentLine = lines[index] ?? "";
+
+  const current = lines[index] ?? { text: "" };
+
+  //const portraitSrc = portraitByExpression[current.expression ?? "neutral"];
 
   const handleNext = () => {
     if (isLast) {
       onFinish(); // ★ 全文終わったら画面遷移（introならゲームへ）
       return;
     }
-    setIndex((i) => i + 1);
+    setIndex((i) => i + 1);// 次の文章へ
   };
+
+  const currentExpression = useMemo<Expression>(() => {
+    let expr: Expression = "neutral";
+    for (let i = 0; i <= index; i++) {
+        const e = lines[i]?.expression;//
+        if (e) expr = e;
+    }
+    return expr;
+    }, [lines, index]);
+
+    const portraitSrc = portraitByExpression[currentExpression];
 
   return (
     <div
@@ -94,11 +118,11 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
         </div>
 
         <div style={{ fontSize: 18, lineHeight: 1.9, minHeight: 90,whiteSpace: 'pre-wrap'}}>
-          {currentLine}
+          {current.text}
         </div>
         
         <img
-              src={character.a}
+              src={portraitSrc}
               alt="主人公"
               style={{
                 width: "50%",
