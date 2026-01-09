@@ -29,7 +29,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     const map: Record<ChapterId, { intro: StoryLine[]; outro: StoryLine[] }> = {
       chapter1: {
         intro: [
-          {text: "1テスト文章です。\n\n\n\n\n改行できてる？",expression: "neutral"},
+          {text: "1テスト文章です。\n\n\n改行できてる？",expression: "neutral"},
           {text: "2",expression: "happy"},
           {text: "3"},
           {text: "ここは多分普通"}
