@@ -8,13 +8,19 @@ type StoryScreenProps = {
   onFinish: () => void;
 };
 
+const character = {
+  a: "/images/a.png",
+  b: "/images/a.png",
+  c: "/images/a.png",
+};
+
 const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) => {
   // 仮：章ごとの文章（あとで外部ファイル化しやすい形）
   const lines = useMemo(() => {
     const map: Record<ChapterId, { intro: string[]; outro: string[] }> = {
       chapter1: {
         intro: [
-          "1",
+          "1テスト文章です。\n\n改行できてる？",
           "2",
           "3",
         ],
@@ -87,11 +93,23 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           {phase === "intro" ? "MISSION START" : "MISSION COMPLETE"} / {chapter}
         </div>
 
-        <div style={{ fontSize: 18, lineHeight: 1.9, minHeight: 90 }}>
+        <div style={{ fontSize: 18, lineHeight: 1.9, minHeight: 90,whiteSpace: 'pre-wrap'}}>
           {currentLine}
         </div>
-
+        
+        <img
+              src={character.a}
+              alt="主人公"
+              style={{
+                width: "50%",
+                height: "auto",
+                borderRadius: 8,
+                objectFit: "cover",
+                marginBottom: 8,
+              }}
+            />
         <div
+        
           style={{
             marginTop: 18,
             display: "flex",
