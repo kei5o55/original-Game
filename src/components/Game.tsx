@@ -31,6 +31,7 @@ const characterImageByStatus: Record<GameStatus, string> = {
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const [collectedCount, setCollectedCount] = useState(0);
   const [totalItems, setTotalItems] = useState(0);
+  const [canProceed,setCanProceed]=useState(false);
   const [collectedItems, setCollectedItems] = useState(0);
   const config = CHAPTER_CONFIG[chapter];
   const START_POS = {
@@ -108,8 +109,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     if (outcome.type === "goal") {
       if (collectedNow >= totalItems) { // ←後述
         setStatus("won");
+        setCanProceed(true);//クリア可能
         pushText("『ゴールに到達！』");
-        onCleared(chapter);
+        //onCleared(chapter);//すぐに遷移する形なのでコメントアウト
       } else {
         pushText(`『まだ回収が残ってる…残り ${totalItems - collectedNow} 個！』`);
       }
@@ -122,6 +124,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     const fresh = createBoard(config.rows, config.cols, config.mines);
     setBoard(fresh);
     setStatus("playing");
+    setCanProceed(false);//リセット（クリア不可）
     setPlayerPos(START_POS);
 
     // 初期マスを踏む（freshを使うのが安全）
@@ -181,6 +184,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       //setHp(config.maxHp);//いったんコメントアウト
       //setCollectedEvents(new Set());//いったんコメントアウト
       setStatus("playing");
+      setCanProceed(false);//クリア不可にリセット
       setHasOpenedAnyCell(false);
       setPlayerPos(START_POS);
 
@@ -383,6 +387,22 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       })
       )}
     </div>
+
+    {status === "won" && canProceed && (
+      <button
+        onClick={() => onCleared(chapter)}
+        style={{
+          marginTop: 12,
+          padding: "10px 16px",
+          borderRadius: 6,
+          border: "none",
+          cursor: "pointer",
+          fontWeight: "bold",
+        }}
+        >
+        次のセクターへ進む
+        </button>
+    )}
 
     {/*自機レイヤー*/}
     <div
