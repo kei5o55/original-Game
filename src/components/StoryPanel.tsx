@@ -20,7 +20,7 @@ const StoryPanel: React.FC<StoryPanelProps> = ({ log }) => {
     <div
       style={{
         width: 320,
-        maxHeight: 320,
+        maxHeight: 250,
         overflowY: "auto",
         padding: 12,
         background: "rgba(15,23,42,0.85)",

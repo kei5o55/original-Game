@@ -1,5 +1,6 @@
 // src/logic/board.ts
 import type { Cell } from "./types";
+import type { ItemId } from "./items";
 
 export const ROWS = 9;
 export const COLS = 9;
@@ -10,7 +11,7 @@ export type ItemType = "heal" | "reveal" | "shield" | "key";
 export type StepOutcome =
   | { type: "safe"; neighborMines: number }
   | { type: "mine" }
-  | { type: "pickup"; item: ItemType }
+  | { type: "pickup"; itemId: ItemId }
   | { type: "event"; eventId: string }
   | { type: "goal" };
 
@@ -101,33 +102,37 @@ function computeNeighborCounts(board: Cell[][]): Cell[][] {
 }
 
 // 盤面を新しく作る（自機スポーン位置は「地雷禁止」だけ適用）
-export function createBoard(rows = ROWS, cols = COLS, mines = MINES): Cell[][] {
+
+export function createBoard(
+  rows = ROWS,
+  cols = COLS,
+  mines = MINES,
+  opts?: { excludeItemIds?: Set<ItemId> }
+): Cell[][] {
   const empty = createEmptyBoard(rows, cols);
 
   const start = { x: Math.floor(cols / 2), y: rows - 1 };
-  function getGoalPos(rows: number, cols: number) {//ゴール位置追加
-    return { x: Math.floor(cols / 2), y: 0 };
-  }
-  const goal = getGoalPos(rows, cols);
+  const goal  = { x: Math.floor(cols / 2), y: 0 };
   empty[goal.y][goal.x].isGoal = true;
 
-  // スタートは「地雷/アイテム/イベント禁止」
-  const forbidden = [start,goal];
+  const forbidden = [start, goal];
 
   const withMines = placeMines(empty, mines, forbidden);
 
-  // 追加：アイテム置く（例）
-  const withItems = placeItems(withMines, [
-    { type: "heal", count: 2 },
-    { type: "shield", count: 1 },
-    { type: "key",count: 1},
-  ], forbidden);
+  // ★ここで除外を渡す
+  const withItems = placeItems(
+    withMines,
+    [
+      { id: "a", count: 1 },
+      { id: "b", count: 1 },
+      { id: "c", count: 1 },
+    ],
+    forbidden,
+    opts?.excludeItemIds
+  );
 
-  // 追加：イベント置く（例）
-  const withEvents = placeEvents(withItems, ["signal_a", "signal_b", "signal_c"], forbidden);
-  
-  const withCounts = computeNeighborCounts(withEvents);
-  return withCounts;
+  const withEvents = placeEvents(withItems, ["signal_a", "signal_b"], forbidden);
+  return computeNeighborCounts(withEvents);
 }
 
 // 盤面コピー
@@ -156,12 +161,12 @@ export function stepOnCell(board: Cell[][], x: number, y: number) {
     return { board: newBoard, outcome: { type: "event", eventId: id } as const };
   }
 
-  if (cell.item) {
-    const item = cell.item;
-    cell.item = undefined;
-    return { board: newBoard, outcome: { type: "pickup", item } as const };
+  if (cell.itemId) {
+    const itemId = cell.itemId;
+    cell.itemId = undefined;
+    return { board: newBoard, outcome: { type: "pickup", itemId } as const };
   }
-  
+    
 
   return { board: newBoard, outcome: { type: "safe", neighborMines: cell.neighborMines } as const };
 }
@@ -178,28 +183,33 @@ export function checkWin(board: Cell[][]): boolean {
 
 function placeItems(
   board: Cell[][],
-  items: { type:ItemType; count: number }[],
-  forbidden: { x: number; y: number }[] = []
+  items: { id: ItemId; count: number }[],
+  forbidden: { x: number; y: number }[] = [],
+  excludeItemIds?: Set<ItemId>
 ): Cell[][] {
   const rows = board.length;
   const cols = board[0].length;
   const newBoard = board.map(row => row.map(c => ({ ...c })));
-
   const forbiddenSet = new Set(forbidden.map(p => `${p.x},${p.y}`));
 
   for (const it of items) {
+    // ★ すでに拾ってたら、そもそも配置しない
+    if (excludeItemIds?.has(it.id)) continue;
+
     let placed = 0;
-    while (placed < it.count) {
+    let guard = 0; // 無限ループ防止
+
+    while (placed < it.count && guard < 10_000) {
+      guard++;
       const x = Math.floor(Math.random() * cols);
       const y = Math.floor(Math.random() * rows);
 
       if (forbiddenSet.has(`${x},${y}`)) continue;
-
       const cell = newBoard[y][x];
       if (cell.hasMine) continue;
-      if (cell.item || cell.eventId || cell.isGoal) continue;
+      if (cell.itemId || cell.eventId || cell.isGoal) continue;
 
-      cell.item = it.type;
+      cell.itemId = it.id;
       placed++;
     }
   }
@@ -227,7 +237,7 @@ function placeEvents(
 
       const cell = newBoard[y][x];
       if (cell.hasMine) continue;
-      if (cell.item || cell.eventId || cell.isGoal) continue;
+      if (cell.itemId || cell.eventId || cell.isGoal) continue;
 
       cell.eventId = id;
       break;

@@ -3,6 +3,13 @@ import type { ItemId } from "./items";
 
 export type ItemType = "heal" | "reveal" | "shield" | "key";
 
+export type ItemLogEntry = {
+  itemId: ItemId;
+  chapter: ChapterId;
+  obtainedAt: number; // Date.now()
+};
+
+
 
 export type Cell = {
   x: number;
@@ -12,7 +19,6 @@ export type Cell = {
   isFlagged: boolean;
   neighborMines: number;
 
-  item?: ItemType;
   hasPlayer?: boolean; 
   eventId?:string;
   isGoal?:boolean;
