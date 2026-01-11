@@ -11,7 +11,6 @@ import { CHAPTER_CONFIG } from "../logic/chapters";
 import {
   createBoard,
   cloneBoard,
-  openCellsRecursive,//マインスイーパー用
   checkWin,
 } from "../logic/board";
 
@@ -56,9 +55,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // ① プレイヤー移動（確定位置）
     const nextPlayer = { x: nx, y: ny };
     setPlayerPos(nextPlayer);
-
-    // ② 踏んだ処理（マス開く / アイテム / ゴールなど）
-    onStep(nx, ny);
 
     // ③ 敵も移動（巡回）
     const nextEnemies = enemies.map(stepEnemy);
@@ -147,7 +143,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
     if (outcome.type === "pickup") {// アイテム取得時
       
-      setCollectedCount((c) => c + 1);
       if(collectedNow==totalItems){
         pushText("『必要なデータは全部集まった……！ ゴールに向かおう！』")
       }
@@ -366,10 +361,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         row.map((cell) => {
           const isInVision = Math.abs(cell.x - playerPos.x) + Math.abs(cell.y - playerPos.y) <= 1;
           const showGlow = isInVision && (cell.item);//上下左右かつアイテムありの場合のみ発光
-          const enemyHere = enemies.some(e => {// 敵がいるかどうか
-            const p = e.route[e.idx];
-            return p.x === cell.x && p.y === cell.y;
-          });
+
           return (
           <button
             key={`${cell.x}-${cell.y}`}

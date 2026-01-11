@@ -1,4 +1,6 @@
 // src/logic/types.ts
+import type { ItemId } from "./items";
+
 export type ItemType = "heal" | "reveal" | "shield" | "key";
 
 
@@ -14,6 +16,8 @@ export type Cell = {
   hasPlayer?: boolean; 
   eventId?:string;
   isGoal?:boolean;
+  // 追加
+  itemId?: ItemId;
 };
 
 export type StoryLogItem =
