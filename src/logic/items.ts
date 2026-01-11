@@ -19,7 +19,7 @@ export const ITEMS: Record<ItemId, ItemDef> = {
     name: "名前a",
     short: "『助かる！ 応急処置できそう！（aの短文』",
     description:
-      "ここに長文",
+      "ログAの詳細説明文。鑑賞用ログとしてここに長文を入れられます。ゲーム中には表示されません。",
     rarity: "common",
     chapterHint: "chapter1",
   },

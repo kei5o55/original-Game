@@ -8,7 +8,10 @@ import StoryPanel from "./StoryPanel";
 import { scriptForOutcome } from "../story/scripts";
 import { CHAPTER_CONFIG } from "../logic/chapters";
 import { getItemDef } from "../logic/items";
-//import type { ItemLogEntry } from "./ItemLogTypes"; // 置き場所は好きで
+import type { ItemLogEntry } from "../logic/types";  // 置き場所は好きで
+import LogGalleryModal from "./LogGalleryModal";
+import type { ItemId } from "../logic/items";
+
 
 import {
   createBoard,
@@ -34,6 +37,7 @@ const LS_KEYS = {
   itemLogs: "misoria.itemLogs.v1",
 };
 
+// ローカルストレージから Set<string> を読み書きする（いったんエラーでいい）
 const loadSet = (key: string) => {
   try {
     const raw = localStorage.getItem(key);
@@ -48,14 +52,15 @@ const saveSet = (key: string, s: Set<string>) => {
   localStorage.setItem(key, JSON.stringify(Array.from(s)));
 };
 
-/*const loadLogs = (): ItemLogEntry[] => {
+const loadLogs = (): ItemLogEntry[] => {
   try {
     const raw = localStorage.getItem(LS_KEYS.itemLogs);
     return raw ? (JSON.parse(raw) as ItemLogEntry[]) : [];
   } catch {
     return [];
   }
-};*/
+};
+//↑ここまで
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   //const [collectedCount, setCollectedCount] = useState(0);
@@ -64,8 +69,16 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const [canProceed,setCanProceed]=useState(false);
   const [collectedItems, setCollectedItems] = useState(0);
   const config = CHAPTER_CONFIG[chapter];
-  const [collection, setCollection] = useState<Set<string>>(() => loadSet(LS_KEYS.collection));
-  //const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>(() => loadLogs());
+  //const [collection, setCollection] = useState<Set<string>>(() => loadSet(LS_KEYS.collection));
+  //const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>(() => loadLogs());//ログをロード（jsonになるのでいったんオフ）
+  const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>([]);
+  const [isLogOpen, setIsLogOpen] = useState(false);
+  const [collection, setCollection] = useState<Set<ItemId>>(() => {
+  // localStorageから読むならここ（いったん空でもOK）
+  return new Set<ItemId>();
+});
+  
+
 
   const START_POS = {
     x: Math.floor(config.cols / 2),
@@ -172,16 +185,24 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       //const def = getItemDef(outcome.itemId);
       setCollectedItems((c) => c + 1);//アイテム拾った処理（下でもやってるからいらないかも）
 
-      // ② 取得済みコレクション（重複取得を防ぐ）
-      setCollection(prev => {
+      // ② 取得済みコレクション（重複取得を防ぐ）//永続になる
+      /*setCollection(prev => {
         const next = new Set(prev);
         next.add(outcome.itemId);
         saveSet(LS_KEYS.collection, next);
         return next;
+      });*/
+      setCollection(prev => {// ローカルストレージ保存版
+        const next = new Set(prev);
+        next.add(outcome.itemId);
+        // localStorageに保存するならここ
+        return next;
       });
 
       // ③ 鑑賞用ログ（履歴として積む）
-      /*setItemLogs(prev => {
+      setItemLogs(prev => [...prev, { itemId: outcome.itemId, chapter, obtainedAt: Date.now() }]);//ログを追加
+
+      /*setItemLogs(prev => {// ログを追加（ローカルストレージ保存版）
         const next = [
           ...prev,
           { itemId: outcome.itemId, chapter, obtainedAt: Date.now() },
@@ -189,6 +210,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         localStorage.setItem(LS_KEYS.itemLogs, JSON.stringify(next));
         return next;
       });*/
+
     }
     
     
@@ -278,7 +300,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
 
     const resetGame = () => {
-      const freshBoard = createBoard(config.rows, config.cols, config.mines);
+      const freshBoard = createBoard(config.rows, config.cols, config.mines, {
+        excludeItemIds: collection,
+      });
       setTotalItems(countItemsOnBoard(freshBoard));
       setCollectedItems(0);
       setBoard(freshBoard);
@@ -522,10 +546,10 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 8 }}>
         回収：{collectedItems} / {totalItems}
       </div>
-          <div
-            
+          <div  
             style={{
               display: "flex",
+              height: "auto",
               flexDirection: "column",
               alignItems: "center",
               padding: "8px 12px",
@@ -571,7 +595,26 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         >
           セクター選択に戻る
         </button>
+        <button
+          onClick={() => setIsLogOpen(true)}
+          style={{
+            marginBottom: 16,
+            padding: "6px 12px",
+            borderRadius: 4,
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          ログ鑑賞
+        </button>
+        <LogGalleryModal
+          open={isLogOpen}
+          onClose={() => setIsLogOpen(false)}
+          logs={itemLogs}
+        />
+        
       </div>
+      
     );
 };
 
