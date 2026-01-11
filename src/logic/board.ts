@@ -165,38 +165,6 @@ export function stepOnCell(board: Cell[][], x: number, y: number) {
 
   return { board: newBoard, outcome: { type: "safe", neighborMines: cell.neighborMines } as const };
 }
-// クリックされたマスから広がる開放処理（旧マインスイーパー用）
-export function openCellsRecursive(board: Cell[][], x: number, y: number): Cell[][] {
-  //const rows = board.length;
-  //const cols = board[0].length;
-  const newBoard = cloneBoard(board);
-  const stack: { x: number; y: number }[] = [{ x, y }];
-
-  while (stack.length > 0) {
-    const { x: cx, y: cy } = stack.pop()!;
-    const cell = newBoard[cy][cx];
-
-    if (cell.isOpen || cell.isFlagged) continue;
-    cell.isOpen = true;
-
-    /*if (cell.neighborMines === 0 && !cell.hasMine) {//マインスイーパー用
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          if (dx === 0 && dy === 0) continue;
-          const nx = cx + dx;
-          const ny = cy + dy;
-          if (nx < 0 || ny < 0 || nx >= cols || ny >= rows) continue;
-          const neighbor = newBoard[ny][nx];
-          if (!neighbor.isOpen && !neighbor.hasMine) {
-            stack.push({ x: nx, y: ny });
-          }
-        }
-      }
-    }*/
-  }
-
-  return newBoard;
-}
 
 // 勝利判定（旧ルール）
 export function checkWin(board: Cell[][]): boolean {
