@@ -11,8 +11,6 @@ import { getItemDef } from "../logic/items";
 import type { ItemLogEntry } from "../logic/types";  // 置き場所は好きで
 import LogGalleryModal from "./LogGalleryModal";
 import type { ItemId } from "../logic/items";
-
-
 import {
   createBoard,
   cloneBoard,
@@ -607,12 +605,11 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         >
           ログ鑑賞
         </button>
-        <LogGalleryModal
-          open={isLogOpen}
-          onClose={() => setIsLogOpen(false)}
-          logs={itemLogs}
-        />
-        
+      <LogGalleryModal
+        open={isLogOpen}
+        onClose={() => setIsLogOpen(false)}
+        collection={collection}
+      />
       </div>
       
     );
