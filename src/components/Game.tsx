@@ -7,6 +7,8 @@ import { stepEnemy, isHitAfterMove } from "../logic/enemy";
 import StoryPanel from "./StoryPanel";
 import { scriptForOutcome } from "../story/scripts";
 import { CHAPTER_CONFIG } from "../logic/chapters";
+import { getItemDef } from "../logic/items";
+//import type { ItemLogEntry } from "./ItemLogTypes"; // 置き場所は好きで
 
 import {
   createBoard,
@@ -27,21 +29,50 @@ const characterImageByStatus: Record<GameStatus, string> = {
   won: "/images/b.png",
   lost: "/images/a.png",
 };
+const LS_KEYS = {
+  collection: "misoria.collection.v1",
+  itemLogs: "misoria.itemLogs.v1",
+};
+
+const loadSet = (key: string) => {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return new Set<string>();
+    return new Set<string>(JSON.parse(raw));
+  } catch {
+    return new Set<string>();
+  }
+};
+
+const saveSet = (key: string, s: Set<string>) => {
+  localStorage.setItem(key, JSON.stringify(Array.from(s)));
+};
+
+/*const loadLogs = (): ItemLogEntry[] => {
+  try {
+    const raw = localStorage.getItem(LS_KEYS.itemLogs);
+    return raw ? (JSON.parse(raw) as ItemLogEntry[]) : [];
+  } catch {
+    return [];
+  }
+};*/
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
-  const [collectedCount, setCollectedCount] = useState(0);
+  //const [collectedCount, setCollectedCount] = useState(0);
   const stepAudioRef = useRef<HTMLAudioElement | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [canProceed,setCanProceed]=useState(false);
   const [collectedItems, setCollectedItems] = useState(0);
   const config = CHAPTER_CONFIG[chapter];
+  const [collection, setCollection] = useState<Set<string>>(() => loadSet(LS_KEYS.collection));
+  //const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>(() => loadLogs());
 
   const START_POS = {
     x: Math.floor(config.cols / 2),
     y: config.rows - 1,
   };
 
-  const [enemies, setEnemies] = useState<Enemy[]>([
+  const [enemies, setEnemies] = useState<Enemy[]>([// 仮の敵データ
     {
       id: "e1",
       route: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 3, y: 2 }],
@@ -78,7 +109,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     let n = 0;
     for (const row of b) {
       for (const cell of row) {
-        if (cell.item) n++;
+        if (cell.itemId) n++;
       }
     }
     return n;
@@ -137,20 +168,42 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     const collectedNow =
       totalItems - countItemsOnBoard(nextBoard); // 残りから逆算
     
-    if (outcome.type === "pickup") {//アイテム拾った処理（下でもやってるからいらないかも）ゴール条件とは別にアイテムを追加するならifでいい
-      setCollectedItems((c) => c + 1);
+    if (outcome.type === "pickup") {
+      //const def = getItemDef(outcome.itemId);
+      setCollectedItems((c) => c + 1);//アイテム拾った処理（下でもやってるからいらないかも）
+
+      // ② 取得済みコレクション（重複取得を防ぐ）
+      setCollection(prev => {
+        const next = new Set(prev);
+        next.add(outcome.itemId);
+        saveSet(LS_KEYS.collection, next);
+        return next;
+      });
+
+      // ③ 鑑賞用ログ（履歴として積む）
+      /*setItemLogs(prev => {
+        const next = [
+          ...prev,
+          { itemId: outcome.itemId, chapter, obtainedAt: Date.now() },
+        ];
+        localStorage.setItem(LS_KEYS.itemLogs, JSON.stringify(next));
+        return next;
+      });*/
     }
+    
+    
+    
     if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
-    if (outcome.type === "pickup") {// アイテム取得時
-      
-      if(collectedNow==totalItems){
-        pushText("『必要なデータは全部集まった……！ ゴールに向かおう！』")
-      }
-    }
+    
     pushLogs(scriptForOutcome(outcome,{chapter}));
-     if (checkWin(nextBoard)) {//地雷マス以外開いたとき
-        pushText("『やった！ これでこの区画は制圧完了だね！』");
-        //onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
+
+    if (checkWin(nextBoard)) {//地雷マス以外開いたとき
+      pushText("『やった！ これでこの区画は制圧完了だね！』");
+      //onCleared(chapter);   // ← ここで App に「クリアしたよ」と教える
+    }
+    
+    if(collectedNow==totalItems){
+      pushText("『必要なデータは全部集まった……！ ゴールに向かおう！』")
     }
     // ゴール踏んだ時の判定
     if (outcome.type === "goal") {
@@ -287,7 +340,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       if (cell.hasMine && cell.isOpen) return "💣";
       if (cell.isGoal) return "🚪";
       if (cell.eventId) return "📡";   // まだ回収前なら表示
-      if (cell.item) return "🎁";
+      //if (cell.item) return "🎁";
+      if (cell.itemId) return "🎁";
       if (cell.isGoal) return "🚪";
       if (cell.neighborMines === 0) return "";
       return cell.neighborMines;
@@ -360,7 +414,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       {board.map((row) =>
         row.map((cell) => {
           const isInVision = Math.abs(cell.x - playerPos.x) + Math.abs(cell.y - playerPos.y) <= 1;
-          const showGlow = isInVision && (cell.item);//上下左右かつアイテムありの場合のみ発光
+          const showGlow = isInVision && (cell.itemId);//上下左右かつアイテムありの場合のみ発光
 
           return (
           <button

@@ -12,7 +12,6 @@ export type Cell = {
   isFlagged: boolean;
   neighborMines: number;
 
-  item?: ItemType;
   hasPlayer?: boolean; 
   eventId?:string;
   isGoal?:boolean;

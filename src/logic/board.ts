@@ -1,5 +1,6 @@
 // src/logic/board.ts
 import type { Cell } from "./types";
+import type { ItemId } from "./items";
 
 export const ROWS = 9;
 export const COLS = 9;
@@ -10,7 +11,7 @@ export type ItemType = "heal" | "reveal" | "shield" | "key";
 export type StepOutcome =
   | { type: "safe"; neighborMines: number }
   | { type: "mine" }
-  | { type: "pickup"; item: ItemType }
+  | { type: "pickup"; itemId: ItemId }
   | { type: "event"; eventId: string }
   | { type: "goal" };
 
@@ -118,9 +119,9 @@ export function createBoard(rows = ROWS, cols = COLS, mines = MINES): Cell[][] {
 
   // 追加：アイテム置く（例）
   const withItems = placeItems(withMines, [
-    { type: "heal", count: 2 },
-    { type: "shield", count: 1 },
-    { type: "key",count: 1},
+    { id: "a", count: 2 },
+    { id: "b", count: 1 },
+    { id: "c", count: 1 },
   ], forbidden);
 
   // 追加：イベント置く（例）
@@ -156,12 +157,12 @@ export function stepOnCell(board: Cell[][], x: number, y: number) {
     return { board: newBoard, outcome: { type: "event", eventId: id } as const };
   }
 
-  if (cell.item) {
-    const item = cell.item;
-    cell.item = undefined;
-    return { board: newBoard, outcome: { type: "pickup", item } as const };
+  if (cell.itemId) {
+    const itemId = cell.itemId;
+    cell.itemId = undefined;
+    return { board: newBoard, outcome: { type: "pickup", itemId } as const };
   }
-  
+    
 
   return { board: newBoard, outcome: { type: "safe", neighborMines: cell.neighborMines } as const };
 }
@@ -178,13 +179,12 @@ export function checkWin(board: Cell[][]): boolean {
 
 function placeItems(
   board: Cell[][],
-  items: { type:ItemType; count: number }[],
+  items: { id: ItemId; count: number }[],
   forbidden: { x: number; y: number }[] = []
 ): Cell[][] {
   const rows = board.length;
   const cols = board[0].length;
   const newBoard = board.map(row => row.map(c => ({ ...c })));
-
   const forbiddenSet = new Set(forbidden.map(p => `${p.x},${p.y}`));
 
   for (const it of items) {
@@ -197,9 +197,9 @@ function placeItems(
 
       const cell = newBoard[y][x];
       if (cell.hasMine) continue;
-      if (cell.item || cell.eventId || cell.isGoal) continue;
+      if (cell.itemId || cell.eventId || cell.isGoal) continue;
 
-      cell.item = it.type;
+      cell.itemId = it.id;
       placed++;
     }
   }
@@ -227,7 +227,7 @@ function placeEvents(
 
       const cell = newBoard[y][x];
       if (cell.hasMine) continue;
-      if (cell.item || cell.eventId || cell.isGoal) continue;
+      if (cell.itemId || cell.eventId || cell.isGoal) continue;
 
       cell.eventId = id;
       break;

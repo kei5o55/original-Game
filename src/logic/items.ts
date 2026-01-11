@@ -1,15 +1,40 @@
 // src/logic/items.ts
-export type ItemId = "heal" | "key" | "gem" | "note";
+export type ItemId =
+  | "a"
+  | "b"
+  | "c";
 
 export type ItemDef = {
   id: ItemId;
   name: string;
-  pickupLog: string; // 拾った時に出すログ
+  short: string;     // ゲーム中に出す短文
+  description?: string; // 鑑賞用の長文
+  rarity?: "common" | "rare" | "legend";
+  chapterHint?: string; // 任意：どの章っぽいか等
 };
 
 export const ITEMS: Record<ItemId, ItemDef> = {
-  heal: { id: "heal", name: "回復薬", pickupLog: "回復薬を拾った。" },
-  key: { id: "key", name: "鍵", pickupLog: "鍵を拾った。どこかの扉が開きそうだ。" },
-  gem: { id: "gem", name: "結晶片", pickupLog: "結晶片を拾った。淡く光っている。" },
-  note: { id: "note", name: "メモ", pickupLog: "メモを拾った。文字がかすれて読みにくい。" },
+  a: {
+    id: "a",
+    name: "名前a",
+    short: "『助かる！ 応急処置できそう！（aの短文』",
+    description:
+      "ここに長文",
+    rarity: "common",
+    chapterHint: "chapter1",
+  },
+  b: {
+    id: "b",
+    name: "名前ｂ",
+    short: "『これで一回は耐えられるね！(bの短文』",
+    chapterHint: "chapter2",
+  },
+  c: {
+    id: "c",
+    name: "名前ｃ",
+    short: "『索敵できる！ 便利〜！(cの短文』",
+    rarity: "common",
+  },
 };
+
+export const getItemDef = (id: ItemId) => ITEMS[id];
