@@ -29,7 +29,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     const map: Record<ChapterId, { intro: StoryLine[]; outro: StoryLine[] }> = {
       chapter1: {
         intro: [
-          {text: "1テスト文章です。\n\\n改行できてる？",expression: "neutral"},
+          {text: "1テスト文章です。\n\n\n改行できてる？",expression: "neutral"},
           {text: "2",expression: "happy"},
           {text: "3"},
           {text: "ここは多分普通"}
@@ -101,7 +101,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
       <div
         style={{
           width: "min(720px, 92vw)",
-          height:400,
+          height:500,
           background: "rgba(15,23,42,0.9)",
           padding: 24,
           borderRadius: 12,
@@ -119,7 +119,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
             src={portraitSrc}
             alt="主人公"
             style={{
-                width: "55%",
+                width: "50%",
                 height: "auto",
                 borderRadius: 8,
                 objectFit: "cover",

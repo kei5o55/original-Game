@@ -1,8 +1,9 @@
 // src/components/Game.tsx
-import React, { useState,useEffect} from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./Game.css"
-import type { Cell, GameStatus, ChapterId, StoryLogItem } from "../logic/types";
+import type { Cell, GameStatus, ChapterId, StoryLogItem ,Enemy} from "../logic/types";
 import {stepOnCell} from "../logic/board";
+import { stepEnemy, isHitAfterMove } from "../logic/enemy";
 import StoryPanel from "./StoryPanel";
 import { scriptForOutcome } from "../story/scripts";
 import { CHAPTER_CONFIG } from "../logic/chapters";
@@ -24,20 +25,59 @@ type GameProps = {
 
 const characterImageByStatus: Record<GameStatus, string> = {
   playing: "/images/a.png",
-  won: "/images/a.png",
+  won: "/images/b.png",
   lost: "/images/a.png",
 };
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const [collectedCount, setCollectedCount] = useState(0);
+  const stepAudioRef = useRef<HTMLAudioElement | null>(null);
   const [totalItems, setTotalItems] = useState(0);
   const [canProceed,setCanProceed]=useState(false);
   const [collectedItems, setCollectedItems] = useState(0);
   const config = CHAPTER_CONFIG[chapter];
+
   const START_POS = {
     x: Math.floor(config.cols / 2),
     y: config.rows - 1,
   };
+
+  const [enemies, setEnemies] = useState<Enemy[]>([
+    {
+      id: "e1",
+      route: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 3, y: 2 }],
+      idx: 0,
+    },
+  ]);
+
+  const advanceTurn = (nx: number, ny: number) => {
+    if (status !== "playing") return;
+
+    // ① プレイヤー移動（確定位置）
+    const nextPlayer = { x: nx, y: ny };
+    setPlayerPos(nextPlayer);
+
+    // ② 踏んだ処理（マス開く / アイテム / ゴールなど）
+    onStep(nx, ny);
+
+    // ③ 敵も移動（巡回）
+    const nextEnemies = enemies.map(stepEnemy);
+    setEnemies(nextEnemies);
+
+    // ④ ★「移動後の位置だけ」衝突判定（すれ違い無し）
+    if (isHitAfterMove(nextPlayer, nextEnemies)) {
+      setStatus("lost");
+      pushText("『敵に捕まった……！』");
+      // 必要ならここでHP減らす等
+    }
+  };
+  
+
+  useEffect(() => {
+    stepAudioRef.current = new Audio("/sfx/step.mp3");// 音声ファイルのパス
+    stepAudioRef.current.volume = 0.35; // 好みで
+  }, []);
+
   const countItemsOnBoard = (b: Cell[][]) => {
     let n = 0;
     for (const row of b) {
@@ -47,6 +87,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     }
     return n;
   };
+
   useEffect(() => {
     setTotalItems(countItemsOnBoard(board));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -65,6 +106,17 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const offset = cellSize + gap;
   const playerX = playerPos.x * offset;
   const playerY = playerPos.y * offset;
+
+  const playStepSound = () => {// 音再生
+    const a = stepAudioRef.current;
+    if (!a) return;
+
+    // 連打でも鳴るように巻き戻す
+    a.currentTime = 0;
+    a.play().catch(() => {
+      // ブラウザの自動再生制限で失敗することがある（最初のクリック後は通りやすい）
+    });
+  };
   
 
     
@@ -137,8 +189,13 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
   useEffect(() => {
     const moveTo = (nx: number, ny: number) => {
+      advanceTurn(nx, ny);
+      // 同じ場所なら何もしない
+      if (nx === playerPos.x && ny === playerPos.y) return;
+
+      playStepSound();         // ★ここで鳴らす
       setPlayerPos({ x: nx, y: ny });
-      onStep(nx, ny); // ★踏んだ判定を発動
+      onStep(nx, ny);
     };
 
 
@@ -207,37 +264,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       }
     };
 
-    const handleLeftClick = (cell: Cell) => {//勝利判定のやつ（一応残しておく
-      if (status !== "playing") return;
-      if (cell.isOpen || cell.isFlagged) return;
-
-      // 最初の1マスを開いたときのリアクション
-      if (!hasOpenedAnyCell && !cell.hasMine) {
-        pushText("『さて……一歩目、踏み出すよ。』");
-        setHasOpenedAnyCell(true);
-      }
-
-      if (cell.hasMine) {
-        const newBoard = cloneBoard(board);
-        newBoard.forEach((row) =>
-          row.forEach((c) => {
-            if (c.hasMine) c.isOpen = true;
-          })
-        );
-        setBoard(newBoard);
-        setStatus("lost");
-        pushText("『……っ！ 今の、完全に踏んじゃったね……ごめん。』");
-        return;
-      }
-
-      const openedBoard = openCellsRecursive(board, cell.x, cell.y);
-      setBoard(openedBoard);
-
-      /*if (checkWin(board)) {
-        setStatus("won");
-        pushText("『やった！ これでこの区画は制圧完了だね！』");
-      }*/
-    };
 
     const handleRightClick = (e: React.MouseEvent, cell: Cell) => {
       e.preventDefault();
@@ -340,10 +366,13 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         row.map((cell) => {
           const isInVision = Math.abs(cell.x - playerPos.x) + Math.abs(cell.y - playerPos.y) <= 1;
           const showGlow = isInVision && (cell.item);//上下左右かつアイテムありの場合のみ発光
+          const enemyHere = enemies.some(e => {// 敵がいるかどうか
+            const p = e.route[e.idx];
+            return p.x === cell.x && p.y === cell.y;
+          });
           return (
           <button
             key={`${cell.x}-${cell.y}`}
-            onClick={() => handleLeftClick(cell)}
             onContextMenu={(e) => handleRightClick(e, cell)}
             style={{
               width: cellSize,
@@ -404,8 +433,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         </button>
     )}
 
-    {/*自機レイヤー*/}
-    <div
+  {/*自機レイヤー*/}
+  <div
     style={{
       position: "absolute",
       top: 4,
@@ -417,6 +446,32 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   >
     <div className="player-face">🙂</div>
   </div>
+  {/* ▼ 敵レイヤー */}
+  <div
+    style={{
+      position: "absolute",
+      top: 4,
+      left: 4,
+      pointerEvents: "none",
+    }}
+  >
+    {enemies.map((enemy, i) => {
+      const p = enemy.route[enemy.idx];
+      return (
+        <div
+          key={i}
+          className="enemy-sprite"
+          style={{
+            transform: `translate(${p.x * offset}px, ${p.y * offset}px)`,
+            transition: "transform 0.18s ease-out",
+          }}
+        >
+          👾
+        </div>
+      );
+    })}
+  </div>
+  
   </div>
       <div style={{ fontSize: 12, opacity: 0.85, marginBottom: 8 }}>
         回収：{collectedItems} / {totalItems}
@@ -456,11 +511,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
           <StoryPanel log={storyLog} />
   </div>
-
-        <p style={{ marginTop: 16, fontSize: 12, opacity: 0.8 }}>
-          左クリック：開く / 右クリック：フラグ 🚩
-        </p>
-
         <button
           onClick={onBackToSelect}
           style={{
