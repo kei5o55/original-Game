@@ -13,11 +13,7 @@ export const ENEMY_SPAWNS_BY_CHAPTER: Record<ChapterId, EnemySpawn[]> = {
       enemyId: "scout",
       uid: "c1-e1",// 固定ID(全敵体でユニーク)
       route: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 3, y: 2 }],//一番左が初期位置
-    }, {
-      enemyId: "scout",
-      uid: "c1-e2",
-      route: [{ x: 1, y: 1 }, { x: 1, y: 2 }],
-    }
+    },
   ],
   chapter2: [
     {

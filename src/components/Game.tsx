@@ -1,7 +1,7 @@
 // src/components/Game.tsx
 import React, { useEffect, useRef, useState } from "react";
 import "./Game.css"
-import type { Cell, GameStatus, ChapterId, StoryLogItem ,Enemy} from "../logic/types";
+import type { Cell, GameStatus, ChapterId, StoryLogItem } from "../logic/types";
 import {stepOnCell} from "../logic/board";
 import { stepEnemy, isHitAfterMove } from "../logic/enemy";
 import StoryPanel from "./StoryPanel";
@@ -16,6 +16,9 @@ import {
   cloneBoard,
   checkWin,
 } from "../logic/board";
+import type { EnemyState } from "../logic/types";
+import { ENEMY_SPAWNS_BY_CHAPTER } from "../logic/enemySpawns";
+import { getEnemyDef } from "../logic/enemyDefs";
 
 const cellSize = 32;
 
@@ -71,11 +74,25 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   //const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>(() => loadLogs());//ログをロード（jsonになるのでいったんオフ）
   const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>([]);
   const [isLogOpen, setIsLogOpen] = useState(false);
+  const [enemies, setEnemies] = useState<EnemyState[]>([]);
   const [collection, setCollection] = useState<Set<ItemId>>(() => {
-  // localStorageから読むならここ（いったん空でもOK）
-  return new Set<ItemId>();
-});
-  
+    // localStorageから読むならここ（いったん空でもOK）
+    return new Set<ItemId>();
+  });
+  useEffect(() => {
+    const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
+    const initEnemies: EnemyState[] = spawns.map(s => {
+      const def = getEnemyDef(s.enemyId);
+      return {
+        uid: s.uid,
+        enemyId: s.enemyId,
+        route: s.route,
+        idx: 0,          // route[0] が初期位置
+        hp: def.maxHp,
+      };
+    });
+    setEnemies(initEnemies);
+  }, [chapter]);
 
 
   const START_POS = {
@@ -83,13 +100,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     y: config.rows - 1,
   };
 
-  const [enemies, setEnemies] = useState<Enemy[]>([// 仮の敵データ
-    {
-      id: "e1",
-      route: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 3, y: 2 }],
-      idx: 0,
-    },
-  ]);
 
   const advanceTurn = (nx: number, ny: number) => {
     if (status !== "playing") return;
@@ -501,7 +511,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         </button>
     )}
 
-  {/*自機レイヤー*/}
+  {/*自機レイヤ */}
   <div
     style={{
       position: "absolute",
@@ -515,26 +525,22 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     <div className="player-face">🙂</div>
   </div>
   {/* ▼ 敵レイヤー */}
-  <div
-    style={{
-      position: "absolute",
-      top: 4,
-      left: 4,
-      pointerEvents: "none",
-    }}
-  >
-    {enemies.map((enemy, i) => {
-      const p = enemy.route[enemy.idx];
+  <div style={{ position: "absolute", top: 4, left: 4, pointerEvents: "none" }}>
+    {enemies.map((enemy) => {
+      const p = enemy.route[enemy.idx];     // idx=0 なので route[0] が初期位置
+      const def = getEnemyDef(enemy.enemyId);
+
       return (
         <div
-          key={i}
+          key={enemy.uid}
           className="enemy-sprite"
           style={{
             transform: `translate(${p.x * offset}px, ${p.y * offset}px)`,
             transition: "transform 0.18s ease-out",
           }}
+          title={`${def.name} HP:${enemy.hp}`}
         >
-          👾
+          {def.sprite}
         </div>
       );
     })}
