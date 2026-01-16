@@ -79,6 +79,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // localStorageから読むならここ（いったん空でもOK）
     return new Set<ItemId>();
   });
+  const [skipMoveAnim, setSkipMoveAnim] = useState(false);
+
   useEffect(() => {
     const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
     const initEnemies: EnemyState[] = spawns.map(s => {
@@ -104,19 +106,37 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const advanceTurn = (nx: number, ny: number) => {
     if (status !== "playing") return;
 
-    // ① プレイヤー移動（確定位置）
+    const prevPlayer = playerPos;
     const nextPlayer = { x: nx, y: ny };
-    setPlayerPos(nextPlayer);
 
-    // ③ 敵も移動（巡回）
+    const prevEnemies = enemies;
     const nextEnemies = enemies.map(stepEnemy);
+
+    const hit = isHitAfterMove(prevPlayer, nextPlayer, prevEnemies, nextEnemies);
+
+    // まず state 更新（アニメ制御したいならこの前にフラグ準備）
+    //setPlayerPos(nextPlayer);
     setEnemies(nextEnemies);
 
-    // ④ ★「移動後の位置だけ」衝突判定（すれ違い無し）
-    if (isHitAfterMove(nextPlayer, nextEnemies)) {
-      setStatus("lost");
-      pushText("『敵に捕まった……！』");
-      // 必要ならここでHP減らす等
+    if (hit.kind !== "none") {
+      if (hit.kind === "crossed") {
+        // ★すれ違い：アニメを動かさない
+        // 例：このターンだけアニメ無効フラグを立てる
+        setSkipMoveAnim(true);
+        setStatus("lost");
+        pushText("『敵に捕まった……！』");
+      } else {
+        setSkipMoveAnim(false);
+        playStepSound();         // ★ここで鳴らす
+        setStatus("lost");
+        pushText("『敵に捕まった……！』");
+        setPlayerPos({ x: nx, y: ny });
+      } 
+    } else {
+      setSkipMoveAnim(false);
+      playStepSound();         // ★ここで鳴らす
+      setPlayerPos({ x: nx, y: ny });
+      onStep(nx, ny);
     }
   };
   
@@ -260,7 +280,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // 初期マスを踏む（freshを使うのが安全）
     const { board: opened, outcome } = stepOnCell(fresh, START_POS.x, START_POS.y);
     setBoard(opened);
-    //pushLogs(scriptForOutcome(outcome, { chapter }));//新規開始時にログが二十で出る不具合があるためいったん非表示（このままでいいかも）
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter]);
@@ -270,10 +289,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       advanceTurn(nx, ny);
       // 同じ場所なら何もしない
       if (nx === playerPos.x && ny === playerPos.y) return;
-
-      playStepSound();         // ★ここで鳴らす
-      setPlayerPos({ x: nx, y: ny });
-      onStep(nx, ny);
     };
 
 
@@ -519,7 +534,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       left: 4,
       pointerEvents: "none",
       transform: `translate(${playerX}px, ${playerY}px)`,
-      transition: "transform 0.18s ease-out",
+      transition: skipMoveAnim ? "none" : "transform 0.18s ease-out",
     }}
   >
     <div className="player-face">🙂</div>
