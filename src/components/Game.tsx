@@ -104,6 +104,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
 
   const advanceTurn = (nx: number, ny: number) => {
+    if (nx === playerPos.x && ny === playerPos.y) return;
     if (status !== "playing") return;
 
     const prevPlayer = playerPos;
@@ -284,32 +285,25 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter]);
 
-  useEffect(() => {
-    const moveTo = (nx: number, ny: number) => {
-      advanceTurn(nx, ny);
-      // 同じ場所なら何もしない
-      if (nx === playerPos.x && ny === playerPos.y) return;
-    };
-
-
+  useEffect(() => {//キーボード入力
     const onKeyDown = (e: KeyboardEvent) => {
       if (status !== "playing") return;
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        moveTo(playerPos.x, Math.max(0, playerPos.y - 1));
+        advanceTurn(playerPos.x, Math.max(0, playerPos.y - 1));
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        moveTo(playerPos.x, Math.min(config.rows - 1, playerPos.y + 1));
+        advanceTurn(playerPos.x, Math.min(config.rows - 1, playerPos.y + 1));
       }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        moveTo(Math.max(0, playerPos.x - 1), playerPos.y);
+        advanceTurn(Math.max(0, playerPos.x - 1), playerPos.y);
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        moveTo(Math.min(config.cols - 1, playerPos.x + 1), playerPos.y);
+        advanceTurn(Math.min(config.cols - 1, playerPos.x + 1), playerPos.y);
       }
       
     };
