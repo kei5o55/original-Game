@@ -27,7 +27,7 @@ export function isHitAfterMove(
       return { kind: "sameCell", enemyIndex: i };
     }
 
-    // ② すれ違い（入れ替わり）
+    // ② すれ違い（入れ替わり）のとき
     const crossed =
       prevPos.x === nextPlayer.x &&
       prevPos.y === nextPlayer.y &&

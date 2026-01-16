@@ -20,6 +20,7 @@ import type { EnemyState } from "../logic/types";
 import { ENEMY_SPAWNS_BY_CHAPTER } from "../logic/enemySpawns";
 import { getEnemyDef } from "../logic/enemyDefs";
 
+
 const cellSize = 32;
 
 type GameProps = {
@@ -80,6 +81,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     return new Set<ItemId>();
   });
   const [skipMoveAnim, setSkipMoveAnim] = useState(false);
+  const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
+  const enemyCount = spawns.length;
 
   useEffect(() => {
     const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
@@ -101,6 +104,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     x: Math.floor(config.cols / 2),
     y: config.rows - 1,
   };
+  const toPx = (x: number) => (x - 1) * offset;
+  const toPy = (y: number) => (y - 1) * offset;
 
 
   const advanceTurn = (nx: number, ny: number) => {
@@ -242,8 +247,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
     }
     
-    
-    
     if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
     
     pushLogs(scriptForOutcome(outcome,{chapter}));
@@ -316,42 +319,58 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     const [hasOpenedAnyCell, setHasOpenedAnyCell] = useState(false);// 最初の1マスを開いたかどうか
 
 
-    const resetGame = () => {
-      const freshBoard = createBoard(config.rows, config.cols, config.mines, {
-        excludeItemIds: collection,
-      });
-      setTotalItems(countItemsOnBoard(freshBoard));
-      setCollectedItems(0);
-      setBoard(freshBoard);
+  const resetGame = () => {
+    const freshBoard = createBoard(config.rows, config.cols, config.mines, {
+      excludeItemIds: collection,
+    });
+    setTotalItems(countItemsOnBoard(freshBoard));
+    setCollectedItems(0);
+    setBoard(freshBoard);
       setPlayerPos({
-        x: Math.floor(config.cols / 2),
-        y: config.rows - 1,
-      });
-      //setHp(config.maxHp);//いったんコメントアウト
-      //setCollectedEvents(new Set());//いったんコメントアウト
-      setStatus("playing");
-      setCanProceed(false);//クリア不可にリセット
-      setHasOpenedAnyCell(false);
-      setPlayerPos(START_POS);
+      x: Math.floor(config.cols / 2),
+      y: config.rows - 1,
+    });
+    /*敵位置の初期化 */
+    const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
+    const initEnemies: EnemyState[] = spawns.map(s => {
+      const def = getEnemyDef(s.enemyId);
+      return {
+        uid: s.uid,
+        enemyId: s.enemyId,
+        route: s.route,
+        idx: 0,          // route[0] が初期位置
+        hp: def.maxHp,
+      };
+    });
 
-      // ログ初期化
-      setStoryLog([
-        { type: "text", message: "『通信再接続っと……よし、改めていこっか！』" },
-      ]);
+    setEnemies(initEnemies);
+    //setHp(config.maxHp);//いったんコメントアウト
+    //setCollectedEvents(new Set());//いったんコメントアウト
+    setStatus("playing");
+    setCanProceed(false);//クリア不可にリセット
+    setHasOpenedAnyCell(false);
+    setPlayerPos(START_POS);
 
-      // ★初期マスを自動で開く（freshBoardを使う！）
-      const { board: opened, outcome } = stepOnCell(freshBoard, START_POS.x, START_POS.y);
-      setBoard(opened);
+    // ログ初期化
+    setStoryLog([
+      { type: "text", message: "『通信再接続っと……よし、改めていこっか！』" },
+    ]);
 
-      // 初期マスのログ（好みで）
-      if (outcome.type === "safe") {
-        if (outcome.neighborMines > 0) {
-          pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
-        } else {
-          pushText("『ここは静か……問題なさそう。』");
-        }
+    // ★初期マスを自動で開く（freshBoardを使う！）
+    const { board: opened, outcome } = stepOnCell(freshBoard, START_POS.x, START_POS.y);
+    setBoard(opened);
+
+    // 初期マスのログ（好みで）
+    if (outcome.type === "safe") {
+      if (outcome.neighborMines > 0) {
+        pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
+      } else {
+        pushText("『ここは静か……問題なさそう。』");
+        pushText(`『敵は ${enemyCount} ！』`);
+
       }
-    };
+    }
+  };
 
 
     const handleRightClick = (e: React.MouseEvent, cell: Cell) => {
@@ -544,6 +563,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
           key={enemy.uid}
           className="enemy-sprite"
           style={{
+            position: "absolute", 
+            top: 0,
+            left: 0,
             transform: `translate(${p.x * offset}px, ${p.y * offset}px)`,
             transition: "transform 0.18s ease-out",
           }}
