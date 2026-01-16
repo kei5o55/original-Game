@@ -22,57 +22,75 @@ const MapSelect: React.FC<MapSelectProps> = ({
 }) => {
   return (
     <div
-      style={{
-        minHeight: "100vh",
-        background: "#020617",
-        color: "#f9fafb",
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        paddingTop: 32,
-      }}
-    >
-      <h2 style={{ fontSize: 28, marginBottom: 16 }}>探索セクター選択</h2>
-
-      <div style={{ width: 480, display: "flex", flexDirection: "column", gap: 12 }}>
-        {chapterList.map((ch) => {
-          const unlocked = unlockedChapters.includes(ch.id);
-          return (
-            <button
-              key={ch.id}
-              onClick={() => unlocked && onSelectChapter(ch.id)}
-              disabled={!unlocked}
-              style={{
-                textAlign: "left",
-                padding: "10px 12px",
-                borderRadius: 8,
-                border: "1px solid #1f2937",
-                background: unlocked ? "#0f172a" : "#020617",
-                opacity: unlocked ? 1 : 0.4,
-                cursor: unlocked ? "pointer" : "not-allowed",
-              }}
-            >
-              <div style={{ fontSize: 16, marginBottom: 4 }}>{ch.label}</div>
-              <div style={{ fontSize: 12, opacity: 0.8 }}>{ch.description}</div>
-              {!unlocked && <div style={{ fontSize: 11, opacity: 0.7 }}>未解放</div>}
-            </button>
-          );
-        })}
+    style={{
+      minHeight: "100vh",
+      width: "100vw",
+      background: "#020617",   // ← これを全面に
+      display: "flex",
+      justifyContent: "center",
+      padding: 32,
+  }}
+  >
+  <div
+    style={{
+      width: "min(1100px, 100%)",
+      display: "grid",
+      gridTemplateColumns: "360px 1fr",
+      gap: 24,
+      alignItems: "start",
+    }}
+  >
+    {/* 左：タイトル＆説明 */}
+    <div>
+      <h2 style={{ fontSize: 32, margin: "0 0 12px" }}>探索セクター選択</h2>
+      <div style={{ fontSize: 14, opacity: 0.8, lineHeight: 1.6 }}>
+        進行したいセクターを選択してください。未解放の章はグレー表示になります。
       </div>
 
       <button
         onClick={onBackTitle}
         style={{
-          marginTop: 24,
-          padding: "8px 16px",
-          borderRadius: 8,
-          border: "none",
+          marginTop: 16,
+          padding: "10px 16px",
+          borderRadius: 10,
+          border: "1px solid #1f2937",
+          background: "#0f172a",
+          color: "#f9fafb",
           cursor: "pointer",
         }}
       >
         タイトルに戻る
       </button>
     </div>
+
+    {/* 右：章リスト */}
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {chapterList.map((ch) => {
+        const unlocked = unlockedChapters.includes(ch.id);
+        return (
+          <button
+            key={ch.id}
+            onClick={() => unlocked && onSelectChapter(ch.id)}
+            disabled={!unlocked}
+            style={{
+              textAlign: "left",
+              padding: "12px 14px",
+              borderRadius: 12,
+              border: "1px solid #1f2937",
+              background: unlocked ? "#0f172a" : "#020617",
+              opacity: unlocked ? 1 : 0.4,
+              cursor: unlocked ? "pointer" : "not-allowed",
+            }}
+          >
+            <div style={{ fontSize: 16, marginBottom: 4 }}>{ch.label}</div>
+            <div style={{ fontSize: 12, opacity: 0.8 }}>{ch.description}</div>
+            {!unlocked && <div style={{ fontSize: 11, opacity: 0.7 }}>未解放</div>}
+          </button>
+        );
+      })}
+    </div>
+  </div>
+</div>
   );
 };
 

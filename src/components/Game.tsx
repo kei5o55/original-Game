@@ -442,7 +442,13 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         >
           リセット
         </button>
-
+          <div
+          style={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",   // ← これが本命
+          }}
+        ></div>
         {/* 盤面 + ストーリーパネルを横並びに */}
         <div
           style={{
@@ -615,7 +621,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
           </div>
 
           <StoryPanel log={storyLog} />
-  </div>
+  </div>{/*盤面ストーリーパネル終わり*/}
         <button
           onClick={onBackToSelect}
           style={{
@@ -626,7 +632,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
             cursor: "pointer",
             opacity: status === "playing" ? 0.6 : 1,
           }}
-          disabled={status === "playing"} // プレイ中は押せないようにする（好みで）
         >
           セクター選択に戻る
         </button>
