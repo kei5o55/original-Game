@@ -7,7 +7,12 @@ export function stepEnemy(enemy: EnemyState): EnemyState {
 }
 
 type HitKind = "none" | "sameCell" | "crossed";
-type HitResult = { kind: HitKind; enemyIndex?: number };
+//type HitResult = { kind: HitKind; enemyIndex?: number };
+
+export type HitResult =
+  | { kind: "none" }
+  | { kind: "hit"; enemyIndex: number }
+  | { kind: "crossed"; enemyIndex: number };
 
 export function isHitAfterMove(
   prevPlayer: { x: number; y: number },
@@ -24,7 +29,7 @@ export function isHitAfterMove(
 
     // ① 同じマス（移動後に重なる）
     if (nextPos.x === nextPlayer.x && nextPos.y === nextPlayer.y) {
-      return { kind: "sameCell", enemyIndex: i };
+      return { kind: "hit", enemyIndex: i };
     }
 
     // ② すれ違い（入れ替わり）のとき

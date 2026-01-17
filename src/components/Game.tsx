@@ -84,6 +84,13 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
   const enemyCount = spawns.length;
 
+  //hp管理系
+  const [hp, setHp] = useState(config.maxHp);
+  const maxDecoy = config.maxHp;
+  const [decoyFlash, setDecoyFlash] = useState(false);
+
+
+
   useEffect(() => {
     const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
     const initEnemies: EnemyState[] = spawns.map(s => {
@@ -109,45 +116,60 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
 
   const advanceTurn = (nx: number, ny: number) => {
+    console.count("advanceTurn");
+
     if (nx === playerPos.x && ny === playerPos.y) return;
     if (status !== "playing") return;
 
     const prevPlayer = playerPos;
     const nextPlayer = { x: nx, y: ny };
 
-    const prevEnemies = enemies;
-    const nextEnemies = enemies.map(stepEnemy);
+    const prevEnemies = enemies;//このターン開始時の敵
+    const nextEnemies = enemies.map(stepEnemy);//移動後の敵
 
-    const hit = isHitAfterMove(prevPlayer, nextPlayer, prevEnemies, nextEnemies);
+    const hit = isHitAfterMove(prevPlayer, nextPlayer, prevEnemies, nextEnemies);//衝突した敵があれば衝突の種類（すれ違いor重なり）とその時点の enemies 配列におけるインデックスを持つ
+    const enemyName =hit.kind === "none" ? "" : getEnemyDef(prevEnemies[hit.enemyIndex].enemyId).name;//衝突の種類がnone(衝突していない)以外の時，衝突時に該当する敵（prevEnemies[enemyIndex]）の名前を取得する
+    const damage =hit.kind === "none" ? 0 : getEnemyDef(prevEnemies[hit.enemyIndex].enemyId).atk;
 
-    // まず state 更新（アニメ制御したいならこの前にフラグ準備）
-    //setPlayerPos(nextPlayer);
     setEnemies(nextEnemies);
 
     if (hit.kind !== "none") {
-      if (hit.kind === "crossed") {
-        // ★すれ違い：アニメを動かさない
-        // 例：このターンだけアニメ無効フラグを立てる
-        setSkipMoveAnim(true);
-        setStatus("lost");
-        pushText("『敵に捕まった……！』");
+      setSkipMoveAnim(hit.kind === "crossed");
+
+      if (hp >= damage) {
+        // ★ デコイが足りる → 消費して生存
+        const nextHp = hp - damage;
+        setHp(nextHp);
+
+        setDecoyFlash(true);
+        setTimeout(() => setDecoyFlash(false), 180);
+
+        pushText(`『${enemyName}に捕まった……！デコイを使用！』`);
       } else {
-        setSkipMoveAnim(false);
-        playStepSound();         // ★ここで鳴らす
+        // ★ デコイ不足 → ゲームオーバー
+        if(hit.kind !== "crossed")setPlayerPos({ x: nx, y: ny });
+        setHp(0); // 任意：UI上ゼロにする
         setStatus("lost");
-        pushText("『敵に捕まった……！』");
+        pushText(`『デコイが足りない……！ ${enemyName}にやられた……！』`);
+      }
+
+      // crossed のときは位置は動かさない
+      if (hit.kind !== "crossed") {
+        playStepSound();
         setPlayerPos({ x: nx, y: ny });
-      } 
-    } else {
-      setSkipMoveAnim(false);
-      playStepSound();         // ★ここで鳴らす
-      setPlayerPos({ x: nx, y: ny });
-      onStep(nx, ny);
+      }
+
+      return;
     }
+    // 何も当たってない通常移動
+    setSkipMoveAnim(false);
+    playStepSound();
+    setPlayerPos({ x: nx, y: ny });
+    onStep(nx, ny);
   };
   
 
-  useEffect(() => {
+  useEffect(() => {//効果音
     stepAudioRef.current = new Audio("/sfx/step.mp3");// 音声ファイルのパス
     stepAudioRef.current.volume = 0.35; // 好みで
   }, []);
@@ -344,7 +366,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     });
 
     setEnemies(initEnemies);
-    //setHp(config.maxHp);//いったんコメントアウト
+    setHp(config.maxHp);//hpを初期値に（chapterごとに異なる）
     //setCollectedEvents(new Set());//いったんコメントアウト
     setStatus("playing");
     setCanProceed(false);//クリア不可にリセット
@@ -413,6 +435,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         : status === "won"
         ? "制圧完了！🎉"
         : "爆発……撤退します💥";
+
+    const isNoDecoy = hp === 0;
 
     return (
       <div
@@ -618,10 +642,40 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               {status === "won" && "『制圧完了！ データの解析、楽しみだな〜』"}
               {status === "lost" && "『うわっ…！ ご、ごめん、ちょっと慎重さ足りなかったかも…』"}
             </div>
+              <div
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 12,
+                  background: isNoDecoy
+                    ? "rgba(80,20,20,0.55)"
+                    : "rgba(15,23,42,0.55)",
+                  border: isNoDecoy
+                    ? "1px solid rgba(255,120,120,0.6)"
+                    : "1px solid rgba(255,255,255,0.15)",
+                  color: isNoDecoy ? "#ffdada" : "#f5f5f5",
+
+                  boxShadow: decoyFlash
+                    ? "0 0 12px rgba(120,180,255,0.9)" // ★ 光る
+                    : "none",
+
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ opacity: 0.85, marginBottom: 4 }}>デコイ</div>
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {Array.from({ length: maxDecoy }).map((_, i) => (
+                    <span key={i} style={{ opacity: i < hp ? 1 : 0.25 }}>
+                      🛡️
+                    </span>
+                  ))}
+                </div>
+              </div>
           </div>
 
           <StoryPanel log={storyLog} />
   </div>{/*盤面ストーリーパネル終わり*/}
+
+
         <button
           onClick={onBackToSelect}
           style={{
