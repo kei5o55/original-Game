@@ -111,9 +111,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     x: Math.floor(config.cols / 2),
     y: config.rows - 1,
   };
-  const toPx = (x: number) => (x - 1) * offset;
-  const toPy = (y: number) => (y - 1) * offset;
-
 
   const advanceTurn = (nx: number, ny: number) => {
     console.count("advanceTurn");

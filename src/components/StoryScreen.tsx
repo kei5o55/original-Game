@@ -8,7 +8,11 @@ type StoryScreenProps = {
   onFinish: () => void;
 };
 
-
+type Props = {
+  logs: string[];          // pushTextで積まれる配列
+  speedMs?: number;        // 1文字表示間隔
+  instant?: boolean;       // 早送り/一括表示フラグ（演出スキップ用）
+};
 type Expression = "neutral" | "happy";// 他の表情も追加可能
 
 type StoryLine = {
