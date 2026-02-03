@@ -20,6 +20,7 @@ import type { EnemyState } from "../logic/types";
 import { ENEMY_SPAWNS_BY_CHAPTER } from "../logic/enemySpawns";
 import { getEnemyDef } from "../logic/enemyDefs";
 
+
 const cellSize = 32;
 
 type GameProps = {
@@ -79,6 +80,17 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // localStorageから読むならここ（いったん空でもOK）
     return new Set<ItemId>();
   });
+  const [skipMoveAnim, setSkipMoveAnim] = useState(false);
+  const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
+  const enemyCount = spawns.length;
+
+  //hp管理系
+  const [hp, setHp] = useState(config.maxHp);
+  const maxDecoy = config.maxHp;
+  const [decoyFlash, setDecoyFlash] = useState(false);
+
+
+
   useEffect(() => {
     const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
     const initEnemies: EnemyState[] = spawns.map(s => {
@@ -100,28 +112,61 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     y: config.rows - 1,
   };
 
-
   const advanceTurn = (nx: number, ny: number) => {
+    console.count("advanceTurn");
+
+    if (nx === playerPos.x && ny === playerPos.y) return;
     if (status !== "playing") return;
 
-    // ① プレイヤー移動（確定位置）
+    const prevPlayer = playerPos;
     const nextPlayer = { x: nx, y: ny };
-    setPlayerPos(nextPlayer);
 
-    // ③ 敵も移動（巡回）
-    const nextEnemies = enemies.map(stepEnemy);
+    const prevEnemies = enemies;//このターン開始時の敵
+    const nextEnemies = enemies.map(stepEnemy);//移動後の敵
+
+    const hit = isHitAfterMove(prevPlayer, nextPlayer, prevEnemies, nextEnemies);//衝突した敵があれば衝突の種類（すれ違いor重なり）とその時点の enemies 配列におけるインデックスを持つ
+    const enemyName =hit.kind === "none" ? "" : getEnemyDef(prevEnemies[hit.enemyIndex].enemyId).name;//衝突の種類がnone(衝突していない)以外の時，衝突時に該当する敵（prevEnemies[enemyIndex]）の名前を取得する
+    const damage =hit.kind === "none" ? 0 : getEnemyDef(prevEnemies[hit.enemyIndex].enemyId).atk;
+
     setEnemies(nextEnemies);
 
-    // ④ ★「移動後の位置だけ」衝突判定（すれ違い無し）
-    if (isHitAfterMove(nextPlayer, nextEnemies)) {
-      setStatus("lost");
-      pushText("『敵に捕まった……！』");
-      // 必要ならここでHP減らす等
+    if (hit.kind !== "none") {
+      setSkipMoveAnim(hit.kind === "crossed");
+
+      if (hp >= damage) {
+        // ★ デコイが足りる → 消費して生存
+        const nextHp = hp - damage;
+        setHp(nextHp);
+
+        setDecoyFlash(true);
+        setTimeout(() => setDecoyFlash(false), 180);
+
+        pushText(`『${enemyName}に捕まった……！デコイを使用！』`);
+      } else {
+        // ★ デコイ不足 → ゲームオーバー
+        if(hit.kind !== "crossed")setPlayerPos({ x: nx, y: ny });
+        setHp(0); // 任意：UI上ゼロにする
+        setStatus("lost");
+        pushText(`『デコイが足りない……！ ${enemyName}にやられた……！』`);
+      }
+
+      // crossed のときは位置は動かさない
+      if (hit.kind !== "crossed") {
+        playStepSound();
+        setPlayerPos({ x: nx, y: ny });
+      }
+
+      return;
     }
+    // 何も当たってない通常移動
+    setSkipMoveAnim(false);
+    playStepSound();
+    setPlayerPos({ x: nx, y: ny });
+    onStep(nx, ny);
   };
   
 
-  useEffect(() => {
+  useEffect(() => {//効果音
     stepAudioRef.current = new Audio("/sfx/step.mp3");// 音声ファイルのパス
     stepAudioRef.current.volume = 0.35; // 好みで
   }, []);
@@ -221,8 +266,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
     }
     
-    
-    
     if(outcome.type==="mine") setStatus("lost");//地雷踏んだ時
     
     pushLogs(scriptForOutcome(outcome,{chapter}));
@@ -260,41 +303,29 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     // 初期マスを踏む（freshを使うのが安全）
     const { board: opened, outcome } = stepOnCell(fresh, START_POS.x, START_POS.y);
     setBoard(opened);
-    //pushLogs(scriptForOutcome(outcome, { chapter }));//新規開始時にログが二十で出る不具合があるためいったん非表示（このままでいいかも）
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chapter]);
 
-  useEffect(() => {
-    const moveTo = (nx: number, ny: number) => {
-      advanceTurn(nx, ny);
-      // 同じ場所なら何もしない
-      if (nx === playerPos.x && ny === playerPos.y) return;
-
-      playStepSound();         // ★ここで鳴らす
-      setPlayerPos({ x: nx, y: ny });
-      onStep(nx, ny);
-    };
-
-
+  useEffect(() => {//キーボード入力
     const onKeyDown = (e: KeyboardEvent) => {
       if (status !== "playing") return;
 
       if (e.key === "ArrowUp") {
         e.preventDefault();
-        moveTo(playerPos.x, Math.max(0, playerPos.y - 1));
+        advanceTurn(playerPos.x, Math.max(0, playerPos.y - 1));
       }
       if (e.key === "ArrowDown") {
         e.preventDefault();
-        moveTo(playerPos.x, Math.min(config.rows - 1, playerPos.y + 1));
+        advanceTurn(playerPos.x, Math.min(config.rows - 1, playerPos.y + 1));
       }
       if (e.key === "ArrowLeft") {
         e.preventDefault();
-        moveTo(Math.max(0, playerPos.x - 1), playerPos.y);
+        advanceTurn(Math.max(0, playerPos.x - 1), playerPos.y);
       }
       if (e.key === "ArrowRight") {
         e.preventDefault();
-        moveTo(Math.min(config.cols - 1, playerPos.x + 1), playerPos.y);
+        advanceTurn(Math.min(config.cols - 1, playerPos.x + 1), playerPos.y);
       }
       
     };
@@ -307,42 +338,58 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     const [hasOpenedAnyCell, setHasOpenedAnyCell] = useState(false);// 最初の1マスを開いたかどうか
 
 
-    const resetGame = () => {
-      const freshBoard = createBoard(config.rows, config.cols, config.mines, {
-        excludeItemIds: collection,
-      });
-      setTotalItems(countItemsOnBoard(freshBoard));
-      setCollectedItems(0);
-      setBoard(freshBoard);
+  const resetGame = () => {
+    const freshBoard = createBoard(config.rows, config.cols, config.mines, {
+      excludeItemIds: collection,
+    });
+    setTotalItems(countItemsOnBoard(freshBoard));
+    setCollectedItems(0);
+    setBoard(freshBoard);
       setPlayerPos({
-        x: Math.floor(config.cols / 2),
-        y: config.rows - 1,
-      });
-      //setHp(config.maxHp);//いったんコメントアウト
-      //setCollectedEvents(new Set());//いったんコメントアウト
-      setStatus("playing");
-      setCanProceed(false);//クリア不可にリセット
-      setHasOpenedAnyCell(false);
-      setPlayerPos(START_POS);
+      x: Math.floor(config.cols / 2),
+      y: config.rows - 1,
+    });
+    /*敵位置の初期化 */
+    const spawns = ENEMY_SPAWNS_BY_CHAPTER[chapter];
+    const initEnemies: EnemyState[] = spawns.map(s => {
+      const def = getEnemyDef(s.enemyId);
+      return {
+        uid: s.uid,
+        enemyId: s.enemyId,
+        route: s.route,
+        idx: 0,          // route[0] が初期位置
+        hp: def.maxHp,
+      };
+    });
 
-      // ログ初期化
-      setStoryLog([
-        { type: "text", message: "『通信再接続っと……よし、改めていこっか！』" },
-      ]);
+    setEnemies(initEnemies);
+    setHp(config.maxHp);//hpを初期値に（chapterごとに異なる）
+    //setCollectedEvents(new Set());//いったんコメントアウト
+    setStatus("playing");
+    setCanProceed(false);//クリア不可にリセット
+    setHasOpenedAnyCell(false);
+    setPlayerPos(START_POS);
 
-      // ★初期マスを自動で開く（freshBoardを使う！）
-      const { board: opened, outcome } = stepOnCell(freshBoard, START_POS.x, START_POS.y);
-      setBoard(opened);
+    // ログ初期化
+    setStoryLog([
+      { type: "text", message: "『通信再接続っと……よし、改めていこっか！』" },
+    ]);
 
-      // 初期マスのログ（好みで）
-      if (outcome.type === "safe") {
-        if (outcome.neighborMines > 0) {
-          pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
-        } else {
-          pushText("『ここは静か……問題なさそう。』");
-        }
+    // ★初期マスを自動で開く（freshBoardを使う！）
+    const { board: opened, outcome } = stepOnCell(freshBoard, START_POS.x, START_POS.y);
+    setBoard(opened);
+
+    // 初期マスのログ（好みで）
+    if (outcome.type === "safe") {
+      if (outcome.neighborMines > 0) {
+        pushText(`『反応あり……この周囲に ${outcome.neighborMines} 箇所、危ない場所がある。』`);
+      } else {
+        pushText("『ここは静か……問題なさそう。』");
+        pushText(`『敵は ${enemyCount} ！』`);
+
       }
-    };
+    }
+  };
 
 
     const handleRightClick = (e: React.MouseEvent, cell: Cell) => {
@@ -386,6 +433,8 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         ? "制圧完了！🎉"
         : "爆発……撤退します💥";
 
+    const isNoDecoy = hp === 0;
+
     return (
       <div
         style={{
@@ -414,7 +463,13 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         >
           リセット
         </button>
-
+          <div
+          style={{
+            width: "100%",
+            display: "flex",
+            justifyContent: "center",   // ← これが本命
+          }}
+        ></div>
         {/* 盤面 + ストーリーパネルを横並びに */}
         <div
           style={{
@@ -519,7 +574,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       left: 4,
       pointerEvents: "none",
       transform: `translate(${playerX}px, ${playerY}px)`,
-      transition: "transform 0.18s ease-out",
+      transition: skipMoveAnim ? "none" : "transform 0.18s ease-out",
     }}
   >
     <div className="player-face">🙂</div>
@@ -535,6 +590,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
           key={enemy.uid}
           className="enemy-sprite"
           style={{
+            position: "absolute", 
+            top: 0,
+            left: 0,
             transform: `translate(${p.x * offset}px, ${p.y * offset}px)`,
             transition: "transform 0.18s ease-out",
           }}
@@ -581,10 +639,40 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
               {status === "won" && "『制圧完了！ データの解析、楽しみだな〜』"}
               {status === "lost" && "『うわっ…！ ご、ごめん、ちょっと慎重さ足りなかったかも…』"}
             </div>
+              <div
+                style={{
+                  padding: "6px 10px",
+                  borderRadius: 12,
+                  background: isNoDecoy
+                    ? "rgba(80,20,20,0.55)"
+                    : "rgba(15,23,42,0.55)",
+                  border: isNoDecoy
+                    ? "1px solid rgba(255,120,120,0.6)"
+                    : "1px solid rgba(255,255,255,0.15)",
+                  color: isNoDecoy ? "#ffdada" : "#f5f5f5",
+
+                  boxShadow: decoyFlash
+                    ? "0 0 12px rgba(120,180,255,0.9)" // ★ 光る
+                    : "none",
+
+                  transition: "all 0.2s ease",
+                }}
+              >
+                <div style={{ opacity: 0.85, marginBottom: 4 }}>デコイ</div>
+                <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                  {Array.from({ length: maxDecoy }).map((_, i) => (
+                    <span key={i} style={{ opacity: i < hp ? 1 : 0.25 }}>
+                      🛡️
+                    </span>
+                  ))}
+                </div>
+              </div>
           </div>
 
           <StoryPanel log={storyLog} />
-  </div>
+  </div>{/*盤面ストーリーパネル終わり*/}
+
+
         <button
           onClick={onBackToSelect}
           style={{
@@ -595,7 +683,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
             cursor: "pointer",
             opacity: status === "playing" ? 0.6 : 1,
           }}
-          disabled={status === "playing"} // プレイ中は押せないようにする（好みで）
         >
           セクター選択に戻る
         </button>

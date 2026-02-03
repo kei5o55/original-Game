@@ -9,8 +9,6 @@ export type ItemLogEntry = {
   obtainedAt: number; // Date.now()
 };
 
-
-
 export type Cell = {
   x: number;
   y: number;
