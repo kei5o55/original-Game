@@ -2,6 +2,7 @@
 // 章ごとのストーリースクリーン表示コンポーネント
 
 import React, { useMemo, useState, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
 import type { ChapterId } from "../logic/types";
 
 type StoryScreenProps = {
@@ -10,16 +11,12 @@ type StoryScreenProps = {
   onFinish: () => void;
 };
 
-type Props = {
-  logs: string[];          // pushTextで積まれる配列
-  speedMs?: number;        // 1文字表示間隔
-  instant?: boolean;       // 早送り/一括表示フラグ（演出スキップ用）
-};
 type Expression = "neutral" | "happy";// 他の表情も追加可能
 
 type StoryLine = {
   text: string;
   expression?: Expression; // 省略したら前の表情を引き継ぐ、みたいにもできる
+  fadeAfter?: boolean; // 文章表示後にフェードアウトするかどうか
 };
 
 const portraitByExpression: Record<Expression, string> = {
@@ -33,6 +30,10 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
   const speedMs = 22; //数字小さいほど速い
   const [shownText, setShownText] = useState(""); // 画面に表示する途中経過
   const [charIndex, setCharIndex] = useState(0);  // current.text の何文字目まで表示したか
+  const [isFading, setIsFading] = useState(false);
+  const fadeMs = 250;
+  
+
 
   
   // 仮：章ごとの文章（あとで外部ファイル化しやすい形）
@@ -41,7 +42,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
       chapter1: {
         intro: [
           {text: "1テスト文章です。\n\n\n改行できてる？",expression: "neutral"},
-          {text: "2",expression: "happy"},
+          {text: "次暗転します",expression: "happy", fadeAfter: true},
           {text: "3"},
           {text: "ここは多分普通"}
         ],
@@ -92,16 +93,28 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     return () => window.clearTimeout(t);
   }, [charIndex, current.text, speedMs]);
 
-  const handleNext = () => {
+  const handleNext = () => {//フェード無しでやる時
     if (isLast) {
       onFinish(); // ★ 全文終わったら画面遷移（introならゲームへ）
       return;
     }
     setIndex((i) => i + 1);// 次の文章へ
   };
-  const isTyping = shownText.length < (current.text?.length ?? 0);
 
-  const handleClick = () => {
+  const goNextWithFade = () => {//フェードありでやる時
+    if (isFading) return;
+    setIsFading(true);
+
+    window.setTimeout(() => {
+      handleNext();       // index++ or onFinish()
+      setIsFading(false); // 明転（exitアニメが走る）
+    }, fadeMs);
+  };
+
+  const isTyping = shownText.length < (current.text?.length ?? 0);
+  const shouldFade = isLast || !!lines[index]?.fadeAfter;//フェードの判定（最後の文章orfadeAfterがtrueの時）
+
+  const handleClick = () => {// 画面クリック時の挙動
     if (isTyping) {
       // 途中なら全文表示に切り替え
       const full = current.text ?? "";
@@ -110,7 +123,11 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
       return;
     }
     // 全文出てるなら次へ
-    handleNext();
+    if (shouldFade) {
+      goNextWithFade();
+    } else {
+      handleNext();
+    }
   };
 
   const currentExpression = useMemo<Expression>(() => {
@@ -192,6 +209,24 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           </span>
           <span>{isTyping ? "クリックで全文表示" : isLast ? "クリックで進む" : "クリックで次へ"}</span>        </div>
       </div>
+      <AnimatePresence>
+        {isFading && (
+          <motion.div
+            key="fade"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25, ease: "easeInOut" }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              background: "#000",
+              pointerEvents: "none",
+              zIndex: 9999,
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 };
