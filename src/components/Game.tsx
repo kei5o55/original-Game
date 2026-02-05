@@ -681,7 +681,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
             borderRadius: 6,
             border: "none",
             cursor: "pointer",
-            opacity: status === "playing" ? 0.6 : 1,
           }}
         >
           セクター選択に戻る

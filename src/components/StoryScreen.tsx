@@ -101,6 +101,10 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     setIndex((i) => i + 1);// 次の文章へ
   };
 
+  const Storyskip = () => {//スキップボタン
+      onFinish();      //onfinish呼ぶだけ
+  };
+
   const goNextWithFade = () => {//フェードありでやる時
     if (isFading) return;
     setIsFading(true);
@@ -173,6 +177,18 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
       >
         <div style={{ opacity: 0.75, fontSize: 12}}>
           {phase === "intro" ? "MISSION START" : "MISSION COMPLETE"} / {chapter}
+          <button
+            onClick={Storyskip}
+            style={{
+              marginTop: 8,
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "none",
+              cursor: "pointer",
+            }}
+          >
+            skip
+          </button>
         </div>
         
         <img //人物画像
@@ -209,7 +225,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           </span>
           <span>{isTyping ? "クリックで全文表示" : isLast ? "クリックで進む" : "クリックで次へ"}</span>        </div>
       </div>
-      <AnimatePresence>
+
+      <AnimatePresence>{/* フェードアニメ */}
         {isFading && (
           <motion.div
             key="fade"
