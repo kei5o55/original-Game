@@ -1,5 +1,7 @@
 // src/components/StoryScreen.tsx
-import React, { useMemo, useState} from "react";
+// 章ごとのストーリースクリーン表示コンポーネント
+
+import React, { useMemo, useState, useEffect } from "react";
 import type { ChapterId } from "../logic/types";
 
 type StoryScreenProps = {
@@ -28,6 +30,11 @@ const portraitByExpression: Record<Expression, string> = {
 
 
 const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) => {
+  const speedMs = 22; //数字小さいほど速い
+  const [shownText, setShownText] = useState(""); // 画面に表示する途中経過
+  const [charIndex, setCharIndex] = useState(0);  // current.text の何文字目まで表示したか
+
+  
   // 仮：章ごとの文章（あとで外部ファイル化しやすい形）
   const lines = useMemo(() => {
     const map: Record<ChapterId, { intro: StoryLine[]; outro: StoryLine[] }> = {
@@ -66,12 +73,44 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
 
   const current = lines[index] ?? { text: "" };
 
+  useEffect(() => {
+    setShownText("");
+    setCharIndex(0);
+  }, [index, chapter, phase]);
+
+  useEffect(() => {
+    const full = current.text ?? "";
+    if (!full) return;
+    if (charIndex >= full.length) return;
+
+    const t = window.setTimeout(() => {
+      const next = charIndex + 1;
+      setCharIndex(next);
+      setShownText(full.slice(0, next));
+    }, speedMs);
+
+    return () => window.clearTimeout(t);
+  }, [charIndex, current.text, speedMs]);
+
   const handleNext = () => {
     if (isLast) {
       onFinish(); // ★ 全文終わったら画面遷移（introならゲームへ）
       return;
     }
     setIndex((i) => i + 1);// 次の文章へ
+  };
+  const isTyping = shownText.length < (current.text?.length ?? 0);
+
+  const handleClick = () => {
+    if (isTyping) {
+      // 途中なら全文表示に切り替え
+      const full = current.text ?? "";
+      setShownText(full);
+      setCharIndex(full.length);
+      return;
+    }
+    // 全文出てるなら次へ
+    handleNext();
   };
 
   const currentExpression = useMemo<Expression>(() => {
@@ -87,7 +126,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
 
   return (
     <div
-      onClick={handleNext}
+      onClick={handleClick}
       style={{
         position:"fixed",
         inset:"0",
@@ -133,7 +172,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
         />
 
         <div style={{ flex:"11 auto",fontSize: 18, lineHeight: 1.9,minHeight: 120,whiteSpace: 'pre-wrap',paddingRight: 6,overflowY: 'auto', }}>
-          {current.text} {/*テキスト*/}
+          {shownText} {/*テキスト*/}
         </div>
         
         
@@ -151,8 +190,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           <span>
             {index + 1} / {lines.length}
           </span>
-          <span>{isLast ? "クリックで進む" : "クリックで次へ"}</span>
-        </div>
+          <span>{isTyping ? "クリックで全文表示" : isLast ? "クリックで進む" : "クリックで次へ"}</span>        </div>
       </div>
     </div>
   );
