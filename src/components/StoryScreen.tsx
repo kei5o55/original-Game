@@ -53,7 +53,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           {text: "1テスト文章です。\n\n\n改行できてる？",expression: "neutral"},
           {text: "次暗転します",expression: "happy", fadeAfter: true},
           {text: "3"},
-          {text: "ここは多分普通"}
+          {text: "改行のテスト\n改行のテスト\n\n\n\n\n\n\n\n\n\n\n改行のテスト", fadeAfter: true},
         ],
         outro: [
           {text: "4"},
