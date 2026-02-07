@@ -110,3 +110,16 @@
   height: 200px;
   object-fit: cover;
 }
+
+.cell {
+  width: var(--cell);
+  height: var(--cell);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* 文字ズレ対策 */
+  line-height: 1;
+  font-size: calc(var(--cell) * 0.55); /* 好みで */
+}
+

@@ -158,38 +158,64 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
     <div
       onClick={handleClick}
       style={{
-        position:"fixed",
-        inset:"0",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        position: "fixed",
+        inset: 0,
         background: "#0b1020",
         color: "#f5f5f5",
         fontFamily: "sans-serif",
-        padding: 24,
         cursor: "pointer",
         userSelect: "none",
+        overflow: "hidden",
       }}
       className="chapter1-img"
     >
+      {/* 背景(主人公画像)：フルサイズで縮小表示 */}
+      <img
+        src={portraitSrc}
+        alt="主人公"
+        style={{
+          position: "absolute",
+          inset: 0,
+          width: "100%",
+          height: "100%",
+          objectFit: "contain",      // ← ここが「フルサイズ縮小」
+          objectPosition: "center",
+          filter: "brightness(0.95)",
+          pointerEvents: "none",     // クリックは親が拾う
+        }}
+      />
+
+      {/* 下部メッセージウィンドウ */}
       <div
         style={{
+          position: "absolute",
+          left: "50%",
+          bottom: "8%",                 // 少し下寄り（好みで調整）
+          transform: "translateX(-50%)",
+
           width: "min(720px, 92vw)",
-          height:500,
-          background: "rgba(15,23,42,0.9)",
-          padding: 24,
-          borderRadius: 12,
-          display:"flex",
-          flexDirection:"column",
-          gap:12,
+          padding: "20px 22px",
+          background: "rgba(15,23,42,0.88)",
+          backdropFilter: "blur(6px)",
+          borderRadius: 14,
+
+          boxShadow: "0 12px 40px rgba(0,0,0,0.5)",
+
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+          maxHeight: "40vh",
         }}
       >
-        <div style={{ opacity: 0.75, fontSize: 12}}>
-          {phase === "intro" ? "MISSION START" : "MISSION COMPLETE"} / {chapter}
+
+        {/* ヘッダ（ミッション表示＋skip） */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, opacity: 0.85, fontSize: 12 }}>
+          <span>{phase === "intro" ? "MISSION START" : "MISSION COMPLETE"} / {chapter}</span>
+
           <button
-            onClick={Storyskip}
+            onClick={(e) => { e.stopPropagation(); Storyskip(); }} // ← 親クリックを止める
             style={{
-              marginTop: 8,
+              marginLeft: "auto",
               padding: "6px 12px",
               borderRadius: 6,
               border: "none",
@@ -199,38 +225,36 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
             skip
           </button>
         </div>
-        
-        <div style={{ width: 300, height: 300, alignSelf: "center" }}>
-          <img
-            src={portraitSrc}
-            alt="主人公"
-            style={{
-              width: "100%",
-              height: "100%",
-              borderRadius: 8,
-              objectFit: "cover",
-            }}
-          />
-        </div>
 
-        <div style={{ flex:"11 auto",fontSize: 18, lineHeight: 1.9,minHeight: 120,whiteSpace: 'pre-wrap',paddingRight: 6,overflowY: 'auto',background: "rgba(15,23,42,0.9)",textAlign: "left", }}>
-          {shownText} {/*テキスト*/}
-        </div>
-        
-        
+        {/* 本文 */}
         <div
           style={{
-            marginTop: "auto",
+            fontSize: 18,
+            lineHeight: 1.9,
+            whiteSpace: "pre-wrap",
+            overflowY: "auto",
+            textAlign: "left",
+          }}
+        >
+          {shownText}
+        </div>
+
+        {/* フッタ（操作ヒント） */}
+        <div
+          style={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
             opacity: 0.75,
             fontSize: 12,
-          }}>
-          <span>{isTyping ? "クリックで全文表示" : isLast ? "クリックで進む" : "クリックで次へ"}</span>        </div>
+          }}
+        >
+          <span>{isTyping ? "クリックで全文表示" : isLast ? "クリックで進む" : "クリックで次へ"}</span>
         </div>
+      </div>
 
-      <AnimatePresence>{/* フェードアニメ */}
+      {/* フェード（今のままでOK） */}
+      <AnimatePresence>
         {isFading && (
           <motion.div
             key="fade"
@@ -248,8 +272,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           />
         )}
       </AnimatePresence>
-
     </div>
+
   );
 };
 

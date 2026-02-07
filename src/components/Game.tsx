@@ -576,6 +576,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       transform: `translate(${playerX}px, ${playerY}px)`,
       transition: skipMoveAnim ? "none" : "transform 0.18s ease-out",
     }}
+    className="cell"
   >
     <div className="player-face">🙂</div>
   </div>
