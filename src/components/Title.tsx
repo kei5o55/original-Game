@@ -5,7 +5,10 @@ type TitleProps = {
   onStart: () => void;
 };
 
+
+
 const Title: React.FC<TitleProps> = ({ onStart }) => {
+  
   return (
     <div style={{ textAlign: "center" }} className="title-img">
       <h1>MISORIA : Frontier</h1>

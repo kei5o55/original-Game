@@ -41,6 +41,8 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
   const [charIndex, setCharIndex] = useState(0);  // current.text の何文字目まで表示したか
   const [isFading, setIsFading] = useState(false);
   const fadeMs = 250;
+
+  
   
 
 
@@ -156,7 +158,20 @@ const shouldFade = !!lines[index]?.fadeAfter; //フェードの判定  // 画面
 
   return (
     <div
-      onClick={handleClick}
+      onClick={(e) => {
+        handleClick();
+
+        const ripple = document.createElement("span");
+        ripple.className = "ripple";
+
+        const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        ripple.style.left = `${e.clientX - rect.left}px`;
+        ripple.style.top = `${e.clientY - rect.top}px`;
+
+        e.currentTarget.appendChild(ripple);
+        setTimeout(() => ripple.remove(), 600);
+      }}
+
       style={{
         position: "fixed",
         inset: 0,
