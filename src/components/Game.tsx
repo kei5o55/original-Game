@@ -195,10 +195,9 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
 
   const [playerPos, setPlayerPos] = useState(START_POS);
 
-  const gap = 2;
-  const offset = cellSize + gap;
-  const playerX = playerPos.x * offset;
-  const playerY = playerPos.y * offset;
+  const gap = 2;                 // grid の gap と同じ値
+  const offset = cellSize + gap; // 1マスぶんの移動量
+
 
   const playStepSound = () => {// 音再生
     const a = stepAudioRef.current;
@@ -434,6 +433,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         : "爆発……撤退します💥";
 
     const isNoDecoy = hp === 0;
+    
 
     return (
       <div
@@ -565,21 +565,31 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
         次のセクターへ進む
         </button>
     )}
+    
+    {/* ▼ 自機レイヤー */}
+    <div
+    
+      style={{
+        position: "absolute",
+        top: 4,
+        left: 4,
+        pointerEvents: "none",
 
-  {/*自機レイヤ */}
-  <div
-    style={{
-      position: "absolute",
-      top: 4,
-      left: 4,
-      pointerEvents: "none",
-      transform: `translate(${playerX}px, ${playerY}px)`,
-      transition: skipMoveAnim ? "none" : "transform 0.18s ease-out",
-    }}
-    className="cell"
-  >
-    <div className="player-face">🙂</div>
-  </div>
+        // ★ マス座標 × offset に統一
+        transform: `translate(${playerPos.x * offset}px, ${playerPos.y * offset}px)`,
+        transition: skipMoveAnim ? "none" : "transform 0.18s ease-out",
+
+        // ★ 中央揃え＆サイズ固定（追加）
+        width: cellSize,
+        height: cellSize,
+        display: "grid",
+        placeItems: "center",
+        lineHeight: 1,
+      }}
+    >
+      <div className="player-face">🙂</div>
+    </div>
+
   {/* ▼ 敵レイヤー */}
   <div style={{ position: "absolute", top: 4, left: 4, pointerEvents: "none" }}>
     {enemies.map((enemy) => {
@@ -591,11 +601,19 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
           key={enemy.uid}
           className="enemy-sprite"
           style={{
-            position: "absolute", 
+            position: "absolute",
             top: 0,
             left: 0,
+
             transform: `translate(${p.x * offset}px, ${p.y * offset}px)`,
             transition: "transform 0.18s ease-out",
+
+            // ★ 自機と同じ中央揃え（追加）
+            width: cellSize,
+            height: cellSize,
+            display: "grid",
+            placeItems: "center",
+            lineHeight: 1,
           }}
           title={`${def.name} HP:${enemy.hp}`}
         >
