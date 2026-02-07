@@ -53,7 +53,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           {text: "1テスト文章です。\n\n\n改行できてる？",expression: "neutral"},
           {text: "次暗転します",expression: "happy", fadeAfter: true},
           {text: "3"},
-          {text: "改行のテスト\n改行のテスト\n\n\n\n\n\n\n\n\n\n\n改行のテスト", fadeAfter: true},
+          {text: "改行のテスト\n改行のテスト\n\n\n\n\n\n\n\n\n\n\n改行のテスト"},
         ],
         outro: [
           {text: "4"},
@@ -125,7 +125,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
   };
 
   const isTyping = shownText.length < (current.text?.length ?? 0);
-  const shouldFade = isLast || !!lines[index]?.fadeAfter;//フェードの判定（最後の文章orfadeAfterがtrueの時）
+const shouldFade = !!lines[index]?.fadeAfter; //フェードの判定  // 画面遷移（isLast）ではフェードしない
 
   const handleClick = () => {// 画面クリック時の挙動
     if (isTyping) {
