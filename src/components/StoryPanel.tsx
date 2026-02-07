@@ -1,6 +1,8 @@
 // src/components/StoryPanel.tsx
 import React, { useEffect, useRef } from "react";
 import type { StoryLogItem } from "../logic/types";
+import "./Story.css";
+
 
 type StoryPanelProps = {
   log: StoryLogItem[];

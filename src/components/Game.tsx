@@ -21,7 +21,7 @@ import { ENEMY_SPAWNS_BY_CHAPTER } from "../logic/enemySpawns";
 import { getEnemyDef } from "../logic/enemyDefs";
 
 
-const cellSize = 32;
+const cellSize = 80; // セルの1辺の長さ（px）
 
 type GameProps = {
     chapter: ChapterId;

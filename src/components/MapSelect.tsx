@@ -54,8 +54,8 @@ const MapSelect: React.FC<MapSelectProps> = ({
           padding: "10px 16px",
           borderRadius: 10,
           border: "1px solid #1f2937",
-          background: "#0f172a",
-          color: "#f9fafb",
+          background: "#ffffff",
+          color: "#000000",
           cursor: "pointer",
         }}
       >
@@ -77,7 +77,7 @@ const MapSelect: React.FC<MapSelectProps> = ({
               padding: "12px 14px",
               borderRadius: 12,
               border: "1px solid #1f2937",
-              background: unlocked ? "#0f172a" : "#020617",
+              background: unlocked ? "#ffffff" : "#020617",
               opacity: unlocked ? 1 : 0.4,
               cursor: unlocked ? "pointer" : "not-allowed",
             }}

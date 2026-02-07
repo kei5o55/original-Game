@@ -4,6 +4,8 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import type { ChapterId } from "../logic/types";
+import "./Story.css";
+import "./img.css";
 
 type StoryScreenProps = {
   chapter: ChapterId;
@@ -24,10 +26,17 @@ const portraitByExpression: Record<Expression, string> = {
   happy: "/images/b.png",
 };
 
+const backgroundByChapter: Record<ChapterId, string> = {
+  chapter1: "/images/bg1.png",
+  chapter2: "/images/bg2.png",
+  chapter3: "/images/bg3.png",
+  chapter4: "/images/bg4.png",
+};
+
 
 
 const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) => {
-  const speedMs = 22; //数字小さいほど速い
+  const speedMs = 25; //数字小さいほど速い
   const [shownText, setShownText] = useState(""); // 画面に表示する途中経過
   const [charIndex, setCharIndex] = useState(0);  // current.text の何文字目まで表示したか
   const [isFading, setIsFading] = useState(false);
@@ -161,6 +170,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
         cursor: "pointer",
         userSelect: "none",
       }}
+      className="chapter1-img"
     >
       <div
         style={{
@@ -169,7 +179,6 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           background: "rgba(15,23,42,0.9)",
           padding: 24,
           borderRadius: 12,
-          boxShadow: "0 10px 30px rgba(0,0,0,0.5)",
           display:"flex",
           flexDirection:"column",
           gap:12,
@@ -191,26 +200,25 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           </button>
         </div>
         
-        <img //人物画像
+        <div style={{ width: 300, height: 300, alignSelf: "center" }}>
+          <img
             src={portraitSrc}
             alt="主人公"
             style={{
-                width: "50%",
-                height: "auto",
-                borderRadius: 8,
-                objectFit: "cover",
-                marginBottom: 8,
-                alignSelf: "center",
+              width: "100%",
+              height: "100%",
+              borderRadius: 8,
+              objectFit: "cover",
             }}
-        />
+          />
+        </div>
 
-        <div style={{ flex:"11 auto",fontSize: 18, lineHeight: 1.9,minHeight: 120,whiteSpace: 'pre-wrap',paddingRight: 6,overflowY: 'auto', }}>
+        <div style={{ flex:"11 auto",fontSize: 18, lineHeight: 1.9,minHeight: 120,whiteSpace: 'pre-wrap',paddingRight: 6,overflowY: 'auto',background: "rgba(15,23,42,0.9)",textAlign: "left", }}>
           {shownText} {/*テキスト*/}
         </div>
         
         
         <div
-        
           style={{
             marginTop: "auto",
             display: "flex",
@@ -218,13 +226,9 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
             alignItems: "center",
             opacity: 0.75,
             fontSize: 12,
-          }}
-        >
-          <span>
-            {index + 1} / {lines.length}
-          </span>
+          }}>
           <span>{isTyping ? "クリックで全文表示" : isLast ? "クリックで進む" : "クリックで次へ"}</span>        </div>
-      </div>
+        </div>
 
       <AnimatePresence>{/* フェードアニメ */}
         {isFading && (
@@ -244,6 +248,7 @@ const StoryScreen: React.FC<StoryScreenProps> = ({ chapter, phase, onFinish }) =
           />
         )}
       </AnimatePresence>
+
     </div>
   );
 };
