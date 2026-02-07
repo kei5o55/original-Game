@@ -1,4 +1,7 @@
 // src/App.tsx
+// アプリケーションのルートコンポーネント
+
+import { AnimatePresence, motion } from "framer-motion";
 import React, { useState } from "react";
 import Game from "./components/Game";
 import Title from "./components/Title";
@@ -14,6 +17,26 @@ type Scene =
 
 const App: React.FC = () => {
   const [scene, setScene] = useState<Scene>({type:"title"});
+  const FADE_MS = 260 as const;
+  const [fadePhase, setFadePhase] = useState<"idle" | "in" | "out">("idle");
+
+  const transitionTo = (next: Scene) => {// シーン遷移処理
+    if (fadePhase !== "idle") return;
+
+    // 暗転開始
+    setFadePhase("in");
+
+    // 暗転が終わった瞬間に画面を切り替える
+    window.setTimeout(() => {
+      setScene(next);
+
+      // 1フレーム待ってから明転開始（切替のチラつき防止）
+      requestAnimationFrame(() => setFadePhase("out"));
+
+      // 明転が終わったら終了
+      window.setTimeout(() => setFadePhase("idle"), FADE_MS);
+    }, FADE_MS);
+  };
 
 
   // どの章まで解放されているか
@@ -37,13 +60,13 @@ const App: React.FC = () => {
     });
 
     // クリアしたらアウトロストーリー画面へ
-    setScene({type:"story",phase:"outro"});
+    transitionTo({ type: "story", phase: "outro" });
   };
 
   return (
     <>
       {scene.type === "title" && (
-        <Title onStart={() => setScene({type:"select"})} />
+        <Title onStart={() => transitionTo({ type: "select" })} />// スタートボタンで選択画面へ
       )}
 
       {scene.type === "select" && (
@@ -51,9 +74,9 @@ const App: React.FC = () => {
           unlockedChapters={unlockedChapters}// 解放済みの章を渡す
           onSelectChapter={(chapter) => {// 章を選んだらゲーム画面へ
             setCurrentChapter(chapter);// 選んだ章をセット
-            setScene({type:"story",phase:"intro"});// ストーリー画面へ
+            transitionTo({ type: "story", phase: "intro" });// ストーリー画面へ
           }}
-          onBackTitle={() => setScene({type:"title"})}// タイトルに戻る
+          onBackTitle={() => transitionTo({ type: "title" })}// タイトルに戻る
         />
       )}
 
@@ -63,9 +86,9 @@ const App: React.FC = () => {
           phase={scene.phase}
           onFinish={() => {
             if (scene.phase === "intro") {
-              setScene({ type: "game" });
+              transitionTo({ type: "game" });
             } else {
-              setScene({ type: "select" });
+              transitionTo({ type: "select" });
             }
           }}
         />
@@ -76,9 +99,22 @@ const App: React.FC = () => {
           key={currentChapter} // 章が変わったらコンポーネントを再作成してリセット
           chapter={currentChapter}// 今の章を渡す
           onCleared={handleChapterCleared}// クリア時の処理(handleChapterCleared)
-          onBackToSelect={() => setScene({type:"select"})}// 選択画面に戻る(ボタンで呼ぶ)
+          onBackToSelect={() => transitionTo({ type: "select" })}// 選択画面に戻る(ボタンで呼ぶ)
         />
       )}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: fadePhase === "idle" ? 0 : fadePhase === "in" ? 1 : 0 }}
+        transition={{ duration: FADE_MS / 1000, ease: "easeInOut" }}
+        style={{
+          position: "fixed",
+          inset: 0,
+          background: "#000",
+          pointerEvents: "none",
+          zIndex: 9999,
+        }}
+      />
+
     </>
   );
 };

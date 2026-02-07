@@ -21,7 +21,7 @@ import { ENEMY_SPAWNS_BY_CHAPTER } from "../logic/enemySpawns";
 import { getEnemyDef } from "../logic/enemyDefs";
 
 
-const cellSize = 32;
+const cellSize = 80; // セルの1辺の長さ（px）
 
 type GameProps = {
     chapter: ChapterId;
@@ -576,6 +576,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
       transform: `translate(${playerX}px, ${playerY}px)`,
       transition: skipMoveAnim ? "none" : "transform 0.18s ease-out",
     }}
+    className="cell"
   >
     <div className="player-face">🙂</div>
   </div>
@@ -681,7 +682,6 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
             borderRadius: 6,
             border: "none",
             cursor: "pointer",
-            opacity: status === "playing" ? 0.6 : 1,
           }}
         >
           セクター選択に戻る

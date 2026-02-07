@@ -1,0 +1,21 @@
+.title-img {
+  width: 100vw;
+  min-height: 100vh;
+  background-image: url('/images/title.png');
+  background-size: cover;
+  background-position: center;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}
+
+.chapter1-img {
+  width: 100vw;
+  min-height: 100vh;
+  background-image: url('/images/bg1.png');
+  background-size: cover;
+  background-position: center;
+  display: grid;
+  place-items: center;
+  text-align: center;
+}

@@ -10,7 +10,7 @@ export type EnemySpawn = {
 export const ENEMY_SPAWNS_BY_CHAPTER: Record<ChapterId, EnemySpawn[]> = {
   chapter1: [
     {
-      enemyId: "scout",
+      enemyId: "scout",// 敵種別ID
       uid: "c1-e1",// 固定ID(全敵体でユニーク)
       route: [{ x: 2, y: 2 }, { x: 2, y: 3 }, { x: 3, y: 3 }, { x: 3, y: 2 }],//一番左が初期位置
     },
