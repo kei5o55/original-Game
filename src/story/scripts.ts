@@ -28,7 +28,7 @@ export function scriptForOutcome(outcome: StepOutcome, ctx: ScriptContext): Stor
   }
 }
 
-function scriptForItemPickup(itemId: Parameters<typeof getItemDef>[0], ctx: ScriptContext): StoryLogItem[] {
+function scriptForItemPickup(itemId: Parameters<typeof getItemDef>[0], _ctx: ScriptContext): StoryLogItem[] {
   const def = getItemDef(itemId);
 
   // ここが「演出の辞書」

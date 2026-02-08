@@ -6,7 +6,7 @@ export function stepEnemy(enemy: EnemyState): EnemyState {
   return { ...enemy, idx: nextIdx };
 }
 
-type HitKind = "none" | "sameCell" | "crossed";
+//type HitKind = "none" | "sameCell" | "crossed";
 //type HitResult = { kind: HitKind; enemyIndex?: number };
 
 export type HitResult =

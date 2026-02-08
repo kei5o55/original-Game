@@ -7,7 +7,7 @@ import { stepEnemy, isHitAfterMove } from "../logic/enemy";
 import StoryPanel from "./StoryPanel";
 import { scriptForOutcome } from "../story/scripts";
 import { CHAPTER_CONFIG } from "../logic/chapters";
-import { getItemDef } from "../logic/items";
+//import { getItemDef } from "../logic/items";
 import type { ItemLogEntry } from "../logic/types";  // 置き場所は好きで
 import LogGalleryModal from "./LogGalleryModal";
 import type { ItemId } from "../logic/items";
@@ -34,12 +34,12 @@ const characterImageByStatus: Record<GameStatus, string> = {
   won: "/images/b.png",
   lost: "/images/a.png",
 };
-const LS_KEYS = {
+/*const LS_KEYS = {
   collection: "misoria.collection.v1",
   itemLogs: "misoria.itemLogs.v1",
-};
+};/*
 
-// ローカルストレージから Set<string> を読み書きする（いったんエラーでいい）
+/* ローカルストレージから Set<string> を読み書きする（いったんエラーでいい）
 const loadSet = (key: string) => {
   try {
     const raw = localStorage.getItem(key);
@@ -62,7 +62,7 @@ const loadLogs = (): ItemLogEntry[] => {
     return [];
   }
 };
-//↑ここまで
+//↑ここまで*/
 
 const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   //const [collectedCount, setCollectedCount] = useState(0);
@@ -73,7 +73,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   const config = CHAPTER_CONFIG[chapter];
   //const [collection, setCollection] = useState<Set<string>>(() => loadSet(LS_KEYS.collection));
   //const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>(() => loadLogs());//ログをロード（jsonになるのでいったんオフ）
-  const [itemLogs, setItemLogs] = useState<ItemLogEntry[]>([]);
+  const [, setItemLogs] = useState<ItemLogEntry[]>([]);
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [enemies, setEnemies] = useState<EnemyState[]>([]);
   const [collection, setCollection] = useState<Set<ItemId>>(() => {
@@ -300,7 +300,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
     setPlayerPos(START_POS);
 
     // 初期マスを踏む（freshを使うのが安全）
-    const { board: opened, outcome } = stepOnCell(fresh, START_POS.x, START_POS.y);
+    const { board: opened, } = stepOnCell(fresh, START_POS.x, START_POS.y);
     setBoard(opened);
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -334,7 +334,7 @@ const Game: React.FC<GameProps> = ({ chapter, onCleared, onBackToSelect }) => {
   }, [playerPos, status, board]); 
 
 
-    const [hasOpenedAnyCell, setHasOpenedAnyCell] = useState(false);// 最初の1マスを開いたかどうか
+    const [, setHasOpenedAnyCell] = useState(false);// 最初の1マスを開いたかどうか
 
 
   const resetGame = () => {

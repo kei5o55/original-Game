@@ -26,12 +26,12 @@ const portraitByExpression: Record<Expression, string> = {
   happy: "/images/b.png",
 };
 
-const backgroundByChapter: Record<ChapterId, string> = {
+/*const backgroundByChapter: Record<ChapterId, string> = {
   chapter1: "/images/bg1.png",
   chapter2: "/images/bg2.png",
   chapter3: "/images/bg3.png",
   chapter4: "/images/bg4.png",
-};
+};*/
 
 
 
