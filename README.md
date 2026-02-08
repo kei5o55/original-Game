@@ -1,7 +1,8 @@
 ### オリジナル探索ゲーム(MISORIA:Frontier（仮）)
 TypeScript + React を用いて制作した，
 探索・ストーリー演出を組み込んだオリジナルゲームです
-(https://original-game-hazel.vercel.app/)
+
+制作途中ですがプレイできます(https://original-game-hazel.vercel.app/)
 
 本作は当初マインスイーパーをベースとして開発を開始しましたが，現在はその要素を簡略化し，
 マス移動型の探索ゲームとして再設計を進めています．
